@@ -5,7 +5,6 @@
   "entrance": { "x": -30, "y": 160 },
   "props": [
     { "id": "backdrop", "src": "studio/room/backdrop.png", "x": 0, "y": 0, "w": 368, "h": 180, "base": 0 },
-    { "id": "city-twinkle", "src": "studio/room/city-twinkle.png", "x": 0, "y": 0, "w": 368, "h": 48, "base": 1, "frames": 2, "duration": 3.4 },
     { "id": "lounge-rug", "src": "studio/furniture/lounge-rug.png", "x": 280, "y": 118, "w": 88, "h": 44, "base": 2 },
     { "id": "floor-lamp-glow", "src": "studio/lights/pendant-glow.png", "x": 329, "y": 37, "w": 48, "h": 40, "base": 3, "effect": "glow" },
     { "id": "floor-lamp", "src": "studio/lights/floor-lamp.png", "x": 344, "y": 48, "w": 18, "h": 62, "base": 110 },

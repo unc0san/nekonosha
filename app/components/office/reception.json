@@ -1,0 +1,40 @@
+{
+  "id": "reception",
+  "name": "受付",
+  "stage": { "width": 368, "height": 180 },
+  "walkY": 160,
+  "doors": [
+    { "id": "entrance", "to": null, "at": { "x": -30, "y": 160 } },
+    { "id": "lounge", "to": "lounge", "at": { "x": 398, "y": 160 } }
+  ],
+  "props": [
+    { "id": "backdrop", "src": "reception/room/backdrop.png", "x": 0, "y": 0, "w": 368, "h": 180, "base": 0 },
+    { "id": "logo-sign", "src": "reception/room/logo-sign.png", "x": 134, "y": 10, "w": 100, "h": 40, "base": 1 },
+    { "id": "pendant-left-glow", "src": "studio/lights/pendant-glow.png", "x": 87, "y": 2, "w": 48, "h": 40, "base": 2, "effect": "glow" },
+    { "id": "pendant-right-glow", "src": "studio/lights/pendant-glow.png", "x": 233, "y": 2, "w": 48, "h": 40, "base": 2, "effect": "glow" },
+    { "id": "pendant-left", "src": "studio/lights/pendant.png", "x": 104, "y": 0, "w": 14, "h": 26, "base": 3 },
+    { "id": "pendant-right", "src": "studio/lights/pendant.png", "x": 250, "y": 0, "w": 14, "h": 26, "base": 3 },
+    { "id": "lamp-glow", "src": "reception/lights/lamp-glow.png", "x": 20, "y": 54, "w": 64, "h": 44, "base": 4, "effect": "glow" },
+    { "id": "arc-lamp", "src": "reception/lights/arc-lamp.png", "x": 40, "y": 18, "w": 64, "h": 112, "base": 128 },
+    { "id": "counter", "src": "reception/furniture/counter.png", "x": 112, "y": 94, "w": 144, "h": 54, "base": 146 },
+    { "id": "counter-items", "src": "reception/furniture/counter-items.png", "x": 112, "y": 76, "w": 144, "h": 30, "base": 147 },
+    { "id": "plant-entrance", "src": "reception/furniture/plant-entrance.png", "x": -6, "y": 108, "w": 40, "h": 64, "base": 172 },
+    { "id": "plant-lounge", "src": "reception/furniture/plant-lounge.png", "x": 304, "y": 96, "w": 40, "h": 64, "base": 160 }
+  ],
+  "spots": [
+    { "id": "front-desk", "kind": "counter", "body": { "x": 163, "y": 62 }, "stand": { "x": 184, "y": 150 } },
+    { "id": "counter", "kind": "stand", "stand": { "x": 102, "y": 156 }, "facing": 1 },
+    { "id": "waiting", "kind": "chair", "chair": { "x": 26, "y": 76 }, "stand": { "x": 54, "y": 150 } }
+  ],
+  "host": { "id": "kinako", "name": "きなこ", "coat": "ハチワレ", "role": "受付" },
+  "guests": [
+    { "id": "guest-gray", "name": "にくきゅう商事さま", "coat": "グレー猫", "purpose": "新商品の打ち合わせ" },
+    { "id": "guest-cream", "name": "マタタビ広告社さま", "coat": "クリーム猫", "purpose": "秋キャンペーンのご相談" }
+  ],
+  "lines": {
+    "greet": "いらっしゃいませ！猫脳社へようこそ。",
+    "guide": "あちらのお席でお待ちください。",
+    "wait": "担当者をお呼びしています。",
+    "leave": "お待たせしました。どうぞ奥へ！", "depart": "ありがとうございました！またお越しください。"
+  }
+}

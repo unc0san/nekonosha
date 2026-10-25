@@ -158,3 +158,27 @@
 @media (prefers-reduced-motion: reduce) {
   .stage * { animation: none !important; }
 }
+
+/* Whole-office map: fixed scale chosen by the screen; narrow screens scroll. */
+.mapFrame { contain: inline-size; overflow: auto; max-height: 76vh; overscroll-behavior: contain; touch-action: pan-x pan-y; background-color: #8cc663; background-attachment: local; scrollbar-color: #ff752e #3a2b33; scrollbar-width: thin; }
+.room { position: absolute; left: calc(var(--x) * var(--px) * 1px); top: calc(var(--y) * var(--px) * 1px); }
+.roomArea {
+  position: absolute;
+  left: calc(var(--x) * var(--px) * 1px); top: calc(var(--y) * var(--px) * 1px);
+  width: calc(var(--w) * var(--px) * 1px); height: calc(var(--h) * var(--px) * 1px);
+  z-index: 4500;
+  padding: 0; border: 0; background: none; cursor: pointer;
+}
+.roomArea:hover { background: #ff9a4a2e; }
+.roomArea:focus-visible { outline: none; background: #ff752e47; }
+.roomTag {
+  position: absolute; left: calc(var(--x) * var(--px) * 1px); top: calc(var(--y) * var(--px) * 1px);
+  transform: translate(-50%, -50%);
+  z-index: 4600; pointer-events: none;
+  padding: 1px 9px;
+  border: 2px solid #3a2b33; border-radius: 999px;
+  background: #fffdf6e6; box-shadow: 0 2px 0 #3a2b33;
+  font-size: max(10px, calc(var(--px) * 7px)); font-weight: 800; color: #3a2b33; white-space: nowrap;
+}
+.roomArea:hover + .roomTag, .roomArea:focus-visible + .roomTag { background: #ff752e; color: #fff; }
+.hint { display: block; margin-top: 3px; font-size: 10px; color: #9a9087; }

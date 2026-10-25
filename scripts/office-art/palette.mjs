@@ -13,6 +13,24 @@ export const sky = ["#121733", "#181f40", "#1f284f", "#28325f", "#353b6e", "#4a4
 export const cityFar = "#2b3263";
 export const cityNear = ["#1c2146", "#232a52"];
 export const cityLights = ["#ffcf6e", "#ffe7a6", "#ff9f4a", "#fff4d0"];
+// Daytime outdoors: sky (top → horizon), clouds (shadow → highlight), Mt. Fuji, the lawn park and its furniture.
+export const day = {
+  sky: ["#4f95dc", "#5fa3e3", "#72b1ea", "#87bfef", "#9ccbf2", "#b4d8f5"],
+  cloud: ["#b9cfe6", "#d6e4f2", "#f1f6fb", "#ffffff"],
+  fuji: ["#5b7cb6", "#6c8dc4", "#86a4d3"],
+  snow: ["#c9d8ea", "#e9f0f8", "#ffffff"],
+  haze: "#a9c8e6",
+  hills: ["#86aec7", "#9cbfd3"],
+  trees: ["#3f7a45", "#4f8d4c", "#67a75a"],
+  grass: ["#6fae4f", "#7dbb58", "#8cc663", "#9bd06e", "#abd97c"],
+  leaf: ["#3a6e3a", "#4c8a45", "#62a552", "#7fbe62", "#a3d47c"],
+  bark: ["#6b4a35", "#87603f"],
+  flowers: ["#ffffff", "#ffe066", "#ff9fc0", "#ffb067"],
+  flowerHeart: "#ffd34d",
+  wood: ["#8b5a37", "#a8714a", "#c78f5e"],
+  iron: "#55565f",
+  path: ["#cfc6ba", "#ddd5ca", "#e9e3da"],
+};
 export const leaf = ["#26472f", "#33623a", "#468447", "#64a455", "#8cc66a"];
 export const metal = ["#55565f", "#73757f", "#9597a1", "#babcc4", "#dcdde2"];
 export const glow = "#ffd28f";

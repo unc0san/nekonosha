@@ -4,7 +4,10 @@ import { useEffect, useState, type CSSProperties } from "react";
 import sceneData from "./work-studio.json";
 import styles from "./office-stage.module.css";
 import { Sprite, useStageScale, type Point } from "./stage";
+import { LaptopDesk } from "./area-stage";
 import { openTasksByStaff, type OfficeTask } from "./staff";
+import { dutiesAt, officeNow, officeTime, type Duty } from "./office-schedule";
+import { TICK, route as walkRoute, step, type Actor } from "./movement";
 
 type Prop = { id: string; src: string; x: number; y: number; w: number; h: number; base: number; frames?: number; duration?: number; effect?: "glow" };
 type Staff = { id: string; name: string; coat: string; role: string };
@@ -14,120 +17,78 @@ type Layout = Record<"body" | "tail" | "table" | "laptop" | "stand" | "pendant" 
 type Scene = { stage: { width: number; height: number }; aisleY: number; entrance: Point; seatLayout: Layout; props: Prop[]; staff: Staff[]; desks: Desk[]; lounge: LoungeSpot[] };
 
 type Spot = { id: string; kind: "desk" | LoungeSpot["kind"]; chair: Point; stand: Point; flip: boolean };
-type Plan = { task?: OfficeTask; spot: string; mode: "work" | "rest" };
-// `seat` is set while sitting; otherwise the cat walks along `path` toward `dest`.
-type Actor = { pos: Point; path: Point[]; seat: string | null; dest: string; heading: 1 | -1; wait: number; stroll: boolean };
+type Plan = { task?: OfficeTask; spot: string; mode: "work" | "away"; duty: Duty };
 
 const scene = sceneData as Scene;
 const L = scene.seatLayout;
 const ROOT = "/office/";
-const SPEED = 40; // stage pixels per second
-const TICK = 80;
-const STROLL_EVERY = 14000;
+// Cats who are not working here (resting in the lounge, at the coffee machine, in a meeting) leave by the entrance.
+const AWAY = "away";
 
 const spots: Spot[] = [
   ...scene.desks.map(desk => ({ id: `desk:${desk.staff}`, kind: "desk" as const, chair: desk.chair, stand: { x: desk.chair.x + L.stand.x, y: desk.chair.y + L.stand.y }, flip: false })),
   ...scene.lounge.map(spot => ({ id: spot.id, kind: spot.kind, chair: spot.chair, stand: spot.stand, flip: true })),
 ];
-const spotById = Object.fromEntries(spots.map(spot => [spot.id, spot]));
+const spotById: Record<string, Spot> = Object.fromEntries(spots.map(spot => [spot.id, spot]));
+const standOf = (id: string) => (id === AWAY ? scene.entrance : spotById[id].stand);
 const baseOf = (spot: Spot) => spot.chair.y + (spot.kind === "beanbag" ? 26 : 66);
 
-// Tasks are shared round-robin across the five staff; anyone without open work heads for the lounge.
-// Cats already resting in the lounge keep their spot (`held`), so finishing a task never reshuffles the others.
-function planFor(tasks: OfficeTask[], held: Record<string, string> = {}): Record<string, Plan> {
-  const open = openTasksByStaff(tasks);
-  const resting = scene.staff.filter(({ id }) => !open[id]).map(({ id }) => id);
-  const keep = Object.fromEntries(resting.filter(id => held[id] && !held[id].startsWith("desk:")).map(id => [id, held[id]]));
-  const free = scene.lounge.map(spot => spot.id).filter(spot => !Object.values(keep).includes(spot));
-  return Object.fromEntries(scene.staff.map(({ id }) => {
-    const task = open[id]?.[0];
-    if (task) return [id, { task, spot: `desk:${id}`, mode: "work" }];
-    return [id, { spot: keep[id] ?? free.shift() ?? `desk:${id}`, mode: "rest" }];
-  }));
+// Tasks are shared round-robin across the five staff. The office schedule decides who is at a desk right now: a cat
+// with open work types at its desk unless it is in a meeting or on a coffee break; everyone else is away.
+function planFor(tasks: OfficeTask[], t: number): Record<string, Plan> {
+  const open = openTasksByStaff(tasks), duties = dutiesAt(tasks, t);
+  return Object.fromEntries(scene.staff.map(({ id }) => [id, duties[id] === "work" ? { task: open[id]?.[0], spot: `desk:${id}`, mode: "work", duty: duties[id] } : { task: open[id]?.[0], spot: AWAY, mode: "away", duty: duties[id] }]));
 }
 
-// Walk down to the aisle, along it, then up to the destination.
-function route(from: Point, to: Point): Point[] {
-  const points = [{ x: from.x, y: scene.aisleY }, { x: to.x, y: scene.aisleY }, to];
-  return points.filter((point, i) => { const prev = i ? points[i - 1] : from; return point.x !== prev.x || point.y !== prev.y; });
-}
-
-function step(actors: Record<string, Actor>, dt: number): Record<string, Actor> {
-  let changed = false;
-  const next = Object.fromEntries(Object.entries(actors).map(([id, actor]) => {
-    if (actor.seat) return [id, actor];
-    changed = true;
-    if (actor.wait > 0) return [id, { ...actor, wait: actor.wait - dt * 1000 }];
-    let { pos, heading } = actor;
-    const path = [...actor.path];
-    let budget = SPEED * dt;
-    while (path.length && budget > 0) {
-      const target = path[0], dx = target.x - pos.x, dy = target.y - pos.y, distance = Math.hypot(dx, dy);
-      if (Math.abs(dx) > 0.5) heading = dx > 0 ? 1 : -1;
-      if (distance <= budget) { pos = target; path.shift(); budget -= distance; } else { pos = { x: pos.x + (dx / distance) * budget, y: pos.y + (dy / distance) * budget }; budget = 0; }
-    }
-    return [id, { ...actor, pos, heading, path, seat: path.length ? null : actor.dest, stroll: path.length ? actor.stroll : false }];
-  }));
-  return changed ? next : actors;
-}
+const route = (from: Point, to: Point) => walkRoute(from, to, scene.aisleY);
 
 export default function WorkStudio({ department, tasks }: { department: string; tasks: OfficeTask[] }) {
   const { width, height } = scene.stage;
   const { frame, scale } = useStageScale(width);
   const [paused, setPaused] = useState(false);
   const [selected, setSelected] = useState(scene.staff[0].id);
-  // Everyone clocks in from the entrance on first load.
-  const [actors, setActors] = useState<Record<string, Actor>>(() => Object.fromEntries(scene.staff.map(({ id }, index) => {
-    const dest = planFor(tasks)[id].spot;
-    return [id, { pos: scene.entrance, path: route(scene.entrance, spotById[dest].stand), seat: null, dest, heading: 1, wait: index * 900, stroll: false }];
+  // Everyone starts where the office schedule has them right now (in step with the map and the other rooms).
+  const [now, setNow] = useState(officeNow);
+  const [actors, setActors] = useState<Record<string, Actor>>(() => Object.fromEntries(scene.staff.map(({ id }) => {
+    const dest = planFor(tasks, now)[id].spot;
+    return [id, { pos: standOf(dest), path: [], seat: dest, dest, heading: 1, wait: 0, stroll: false }];
   })));
-  const plans = planFor(tasks, Object.fromEntries(Object.entries(actors).map(([id, actor]) => [id, actor.dest])));
-
-  // Re-route cats whose destination changed because a task was completed, reopened or added.
-  const destinations = scene.staff.map(({ id }) => plans[id].spot).join("|");
-  useEffect(() => {
-    const dests = destinations.split("|");
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- movement state follows the task list
-    setActors(previous => Object.fromEntries(scene.staff.map(({ id }, index) => {
-      const actor = previous[id], dest = dests[index];
-      if (actor.dest === dest && !actor.stroll) return [id, actor];
-      const from = actor.seat ? spotById[actor.seat].stand : actor.pos;
-      return [id, { ...actor, pos: from, path: route(from, spotById[dest].stand), seat: null, dest, stroll: false }];
-    })));
-  }, [destinations]);
+  const plans = planFor(tasks, now);
 
   useEffect(() => {
     if (paused) return;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    let sinceStroll = 0;
     const timer = window.setInterval(() => {
+      const t = officeTime(), plan = planFor(tasks, t);
+      setNow(t);
+      // Cats parked somewhere other than where the schedule wants them set off; a walk in progress finishes first.
       // With reduced motion, cats skip walking and appear straight at their seats.
-      if (reduced) {
-        setActors(previous => Object.values(previous).every(actor => actor.seat) ? previous : Object.fromEntries(Object.entries(previous).map(([id, actor]) => [id, { ...actor, pos: spotById[actor.dest].stand, path: [], seat: actor.dest, stroll: false }])));
-        return;
-      }
-      sinceStroll += TICK;
       setActors(previous => {
         let next = step(previous, TICK / 1000);
-        if (sinceStroll < STROLL_EVERY) return next;
-        sinceStroll = 0;
-        // A lounging cat occasionally stretches its legs along the aisle and comes back.
-        const idle = Object.entries(next).filter(([, actor]) => actor.seat && spotById[actor.seat].kind !== "desk");
-        if (!idle.length) return next;
-        const [id, actor] = idle[Math.floor(Math.random() * idle.length)];
-        const home = spotById[actor.seat as string].stand, turn = { x: 40 + Math.random() * 200, y: scene.aisleY };
-        next = { ...next, [id]: { ...actor, pos: home, path: [...route(home, turn), ...route(turn, home)], seat: null, stroll: true } };
+        for (const [id, actor] of Object.entries(next)) {
+          const dest = plan[id].spot;
+          if (!actor.seat || actor.dest === dest) continue;
+          const from = standOf(actor.seat);
+          next = { ...next, [id]: { ...actor, pos: from, path: route(from, standOf(dest)), seat: null, dest, wait: 0 } };
+        }
+        if (reduced) next = Object.fromEntries(Object.entries(next).map(([id, actor]) => [id, actor.seat ? actor : { ...actor, pos: standOf(actor.dest), path: [], seat: actor.dest }]));
         return next;
       });
     }, TICK);
     return () => window.clearInterval(timer);
-  }, [paused]);
+  }, [paused, tasks]);
 
+  const AWAY_STATUS: Record<Duty, { label: string; job: string }> = {
+    rest: { label: "休憩中", job: "担当タスクが完了。ラウンジでひと休みしています。" },
+    coffee: { label: "コーヒー休憩", job: "ラウンジのコーヒーマシンでひと息ついています。すぐ戻ります。" },
+    meeting: { label: "会議中", job: "会議室で打ち合わせをしています。" },
+    work: { label: "作業中", job: "" },
+  };
   const status = (id: string) => {
     const actor = actors[id], plan = plans[id];
-    if (!actor.seat) return { mode: "walk" as const, label: "移動中", job: actor.stroll ? "ちょっとお散歩中。すぐ戻ります。" : plan.mode === "work" ? `デスクへ向かっています：${plan.task?.title}` : "ラウンジへ向かっています。" };
-    if (plan.mode === "work") return { mode: "work" as const, label: "作業中", job: `サポート中：${plan.task?.title}` };
-    return { mode: "rest" as const, label: "休憩中", job: spotById[actor.seat].kind === "desk" ? "担当タスクが完了。デスクでうとうとしています。" : "担当タスクが完了。ラウンジでひと休みしています。" };
+    if (!actor.seat) return { mode: "walk" as const, label: "移動中", job: actor.dest === AWAY ? (plan.duty === "meeting" ? "会議室へ向かっています。" : "ラウンジへ向かっています。") : `デスクへ向かっています：${plan.task?.title}` };
+    if (actor.seat === AWAY) return { mode: "rest" as const, ...AWAY_STATUS[plan.duty] };
+    return { mode: "work" as const, label: "作業中", job: `ノートパソコンで作業中：${plan.task?.title ?? "担当タスク"}` };
   };
 
   const deskOf = (id: string) => scene.desks.find(desk => desk.staff === id) as Desk;
@@ -151,7 +112,7 @@ export default function WorkStudio({ department, tasks }: { department: string; 
             <Sprite src={`${ROOT}president/furniture/egg-chair-back.png`} x={x} y={y} w={56} h={68} z={z}/>
             <Sprite src={`${ROOT}studio/furniture/side-table.png`} x={x + L.table.x} y={y + L.table.y} w={30} h={40} z={z + 1}/>
             <Sprite src={`${ROOT}president/furniture/egg-chair-front.png`} x={x} y={y} w={56} h={68} z={z + 3}/>
-            <Sprite src={`${ROOT}president/furniture/laptop.png`} x={x + L.laptop.x} y={y + L.laptop.y} w={20} h={16} z={z + 5}/>
+            {!(actors[desk.staff].seat === `desk:${desk.staff}`) && <LaptopDesk spot={{ x: x + L.laptop.x, y: y + L.laptop.y }} side="left" z={z + 5}/>}
             <span className={styles.label} style={{ "--x": x + 30, "--y": 45 } as CSSProperties} aria-hidden="true">{desk.labels[department] ?? Object.values(desk.labels)[0]}</span>
           </div>;
         })}
@@ -166,6 +127,8 @@ export default function WorkStudio({ department, tasks }: { department: string; 
 
         {scene.staff.map(({ id, name }, index) => {
           const actor = actors[id], state = status(id), isSelected = selected === id;
+          // Away (lounge, coffee, meeting): not in this room.
+          if (actor.seat === AWAY) return null;
           const select = <button type="button" className={styles.hit} aria-pressed={isSelected} aria-label={`${name}、${state.label}`} onClick={() => setSelected(id)}
             style={(actor.seat ? { "--x": spotById[actor.seat].chair.x, "--y": spotById[actor.seat].chair.y - 4, "--w": 56, "--h": 66 } : { "--x": Math.round(actor.pos.x) - 20, "--y": Math.round(actor.pos.y) - 40, "--w": 44, "--h": 42 }) as CSSProperties}/>;
           if (!actor.seat) {
@@ -177,6 +140,13 @@ export default function WorkStudio({ department, tasks }: { department: string; 
             </div>;
           }
           const spot = spotById[actor.seat], z = baseOf(spot) * 10, rest = state.mode === "rest";
+          // At the desk: turned to the laptop, typing (the laptop is drawn with the cat so their animations line up).
+          if (spot.kind === "desk") return <div key={id} className={`${styles.seat} ${isSelected ? styles.selected : ""}`}>
+            <LaptopDesk id={id} spot={{ x: spot.chair.x + L.laptop.x, y: spot.chair.y + L.laptop.y }} side="left" z={z + 2} delay={-((index * 1.7) % 4.8)}/>
+            <span className={styles.bubble} style={{ "--x": spot.chair.x + 30, "--y": spot.chair.y } as CSSProperties} aria-hidden="true"><i/><i/><i/></span>
+            {isSelected && <span className={styles.nameTag} style={{ "--x": spot.stand.x, "--y": baseOf(spot) + 2 } as CSSProperties} aria-hidden="true">{name}</span>}
+            {select}
+          </div>;
           const body = spot.kind === "beanbag" ? { x: spot.chair.x, y: spot.chair.y - 31 } : { x: spot.flip ? spot.chair.x + 56 - L.body.x - 42 : spot.chair.x + L.body.x, y: spot.chair.y + L.body.y };
           const tail = { x: spot.flip ? spot.chair.x + 56 - L.tail.x - 16 : spot.chair.x + L.tail.x, y: spot.chair.y + L.tail.y };
           return <div key={id} className={`${styles.seat} ${rest ? styles.resting : ""} ${isSelected ? styles.selected : ""}`}>

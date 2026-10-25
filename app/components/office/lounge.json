@@ -1,0 +1,40 @@
+{
+  "id": "lounge",
+  "name": "ラウンジ",
+  "stage": { "width": 368, "height": 180 },
+  "walkY": 158,
+  "doors": [
+    { "id": "reception", "to": "reception", "at": { "x": -30, "y": 158 } },
+    { "id": "studio", "to": "studio", "at": { "x": 398, "y": 158 } }
+  ],
+  "props": [
+    { "id": "backdrop", "src": "lounge/room/backdrop.png", "x": 0, "y": 0, "w": 368, "h": 180, "base": 0 },
+    { "id": "rug", "src": "lounge/furniture/rug.png", "x": 92, "y": 110, "w": 196, "h": 54, "base": 1 },
+    { "id": "lamp-glow", "src": "studio/lights/pendant-glow.png", "x": 251, "y": 37, "w": 48, "h": 40, "base": 2, "effect": "glow" },
+    { "id": "coffee-bar", "src": "lounge/furniture/coffee-bar.png", "x": 18, "y": 66, "w": 80, "h": 64, "base": 130 },
+    { "id": "coffee-machine", "src": "lounge/furniture/coffee-machine.png", "x": 24, "y": 42, "w": 36, "h": 36, "base": 131, "frames": 2, "duration": 1.6 },
+    { "id": "sofa-back", "src": "lounge/furniture/sofa-back.png", "x": 110, "y": 66, "w": 150, "h": 62, "base": 120 },
+    { "id": "sofa-front", "src": "lounge/furniture/sofa-front.png", "x": 110, "y": 66, "w": 150, "h": 62, "base": 128 },
+    { "id": "table", "src": "president/furniture/tulip-table.png", "x": 156, "y": 104, "w": 68, "h": 58, "base": 155 },
+    { "id": "table-snacks", "src": "lounge/furniture/table-snacks.png", "x": 156, "y": 104, "w": 68, "h": 58, "base": 156 },
+    { "id": "floor-lamp", "src": "studio/lights/floor-lamp.png", "x": 266, "y": 48, "w": 18, "h": 62, "base": 110 },
+    { "id": "plant-corner", "src": "lounge/furniture/plant.png", "x": -6, "y": 112, "w": 40, "h": 64, "base": 176 }
+  ],
+  "spots": [
+    { "id": "sofa-1", "kind": "sofa", "body": { "x": 123, "y": 68 }, "stand": { "x": 144, "y": 134 } },
+    { "id": "sofa-2", "kind": "sofa", "body": { "x": 164, "y": 68 }, "stand": { "x": 185, "y": 134 } },
+    { "id": "sofa-3", "kind": "sofa", "body": { "x": 205, "y": 68 }, "stand": { "x": 226, "y": 134 } },
+    { "id": "chair", "kind": "chair", "chair": { "x": 290, "y": 74 }, "stand": { "x": 300, "y": 150 }, "flip": true },
+    { "id": "beanbag", "kind": "beanbag", "chair": { "x": 306, "y": 138 }, "stand": { "x": 300, "y": 158 }, "flip": true },
+    { "id": "coffee", "kind": "stand", "stand": { "x": 96, "y": 142 }, "facing": -1 }
+  ],
+  "steam": { "x": 36, "y": 50 },
+  "chatter": [
+    "新しいカリカリ、おいしかったね。",
+    "窓ぎわ、ぽかぽかで最高だよ。",
+    "このあと、ちょっとだけお昼寝しよう。",
+    "しらす社長、今日もご機嫌だったね。",
+    "コーヒーの香りって、なんだか落ち着く。",
+    "週末はどこの日なたに行く？"
+  ]
+}

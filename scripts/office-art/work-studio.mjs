@@ -1,7 +1,8 @@
 // Work studio: shares the president suite's palette, light direction and floor so the rooms read as one office.
-import { Pixels, bayer, ellipseNormal, inEllipse, random, sheet } from "./lib/pixel.mjs";
+import { Pixels, bayer, ellipseNormal, inEllipse } from "./lib/pixel.mjs";
 import { onlyEmpty, roundedRect, tone } from "./president-room.mjs";
 import * as P from "./palette.mjs";
+import { outdoorView } from "./daylight.mjs";
 
 const STAGE = { width: 368, height: 180, horizon: 78, left: 18, right: 350 };
 const WINDOWS = [[34, 94], [114, 174], [194, 254], [274, 334]].map(([x0, x1]) => ({ x0, x1, y0: 6, y1: 46 }));
@@ -11,14 +12,16 @@ const glass = WINDOWS.map(w => roundedRect(w.x0 + 3, w.y0 + 3, w.x1 - 3, w.y1, 1
 const inGlass = (x, y) => glass.some(g => g(x, y));
 const onFloor = (x, y) => y >= STAGE.horizon && y >= STAGE.horizon + (STAGE.left - x) * 1.1 && y >= STAGE.horizon + (x - STAGE.right) * 1.1;
 
-const CITY = (() => {
-  const rand = random(17), far = [], near = [];
-  for (let x = 30; x < 340;) { const w = 5 + Math.floor(rand() * 9); far.push({ x, w, top: 24 + Math.floor(rand() * 14) }); x += w; }
-  for (let x = 28; x < 340;) { const w = 7 + Math.floor(rand() * 12); near.push({ x, w, top: 29 + Math.floor(rand() * 13) }); x += w + Math.floor(rand() * 3); }
-  const lights = [];
-  for (const b of near) for (let y = b.top + 3; y < 45; y += 3) for (let x = b.x + 2; x < b.x + b.w - 2; x += 2) if (rand() < 0.45) lights.push([x, y, rand()]);
-  return { far, near, lights };
-})();
+// The studio shares the suite's side of the building, so its windows look further along the same view: Fuji (panorama
+// x 0) sits in the first window, then the lawn park and its trees.
+export const STUDIO_VIEW = {
+  top: 9, horizon: 34, bottom: 46, pan: -78,
+  fuji: { x: 0, height: 19, half: 20 },
+  clouds: [[-28, 15, 12, 4], [62, 22, 16, 5], [147, 14, 12, 4], [222, 20, 16, 5]],
+  benches: [[50, 39, 0.6], [212, 40, 0.6]],
+  trees: [[72, 41, 4, 2], [136, 38, 3, 9], [158, 41, 4, 4], [238, 40, 4, 6]],
+  seed: 31,
+};
 
 export function backdrop() {
   const { width, height, horizon, left, right } = STAGE;
@@ -46,13 +49,8 @@ export function backdrop() {
   // Space-age orange band running the length of the studio.
   img.rect(left + 1, 53, right - left - 1, 3, P.orange[2]); img.rect(left + 1, 53, right - left - 1, 1, P.orange[3]); img.rect(left + 1, 56, right - left - 1, 1, P.orange[0]);
 
-  // Capsule windows onto the same night city.
-  const rand = random(5);
-  img.fill(inGlass, (x, y) => tone(P.sky, (y - 6) / 40 * 1.05, x, y, 1.2));
-  for (let i = 0; i < 60; i++) { const x = 30 + Math.floor(rand() * 310), y = 9 + Math.floor(rand() * 18); if (inGlass(x, y)) img.set(x, y, rand() < 0.3 ? "#fff6dc" : [200, 210, 255, 150]); }
-  for (const b of CITY.far) img.fill((x, y) => inGlass(x, y) && x >= b.x && x < b.x + b.w && y >= b.top, P.cityFar);
-  for (const b of CITY.near) img.fill((x, y) => inGlass(x, y) && x >= b.x && x < b.x + b.w && y >= b.top, x => (x === b.x ? P.cityNear[1] : P.cityNear[0]));
-  for (const [x, y, r] of CITY.lights) if (inGlass(x, y) && r > 0.18) img.set(x, y, r > 0.8 ? P.cityLights[1] : r > 0.4 ? P.cityLights[0] : P.cityLights[2]);
+  // Capsule windows onto the daytime park.
+  outdoorView(img, inGlass, STUDIO_VIEW);
   WINDOWS.forEach((w, i) => {
     const outer = roundedRect(w.x0, w.y0, w.x1, w.y1 + 1, 16);
     img.fill((x, y) => outer(x, y) && !glass[i](x, y), (x, y) => tone(P.shell, y < w.y0 + 6 ? 0.9 : 0.65, x, y));
@@ -62,15 +60,6 @@ export function backdrop() {
     img.fill((x, y) => outer(x, y) && (!outer(x - 1, y) || !outer(x + 1, y) || !outer(x, y - 1)), "#b7aaa0");
   });
   return img;
-}
-
-export function cityTwinkle() {
-  const frames = [0, 1].map(frame => {
-    const img = new Pixels(STAGE.width, 48);
-    for (const [x, y, r] of CITY.lights) if (inGlass(x, y) && r <= 0.18 && (r < 0.09) === (frame === 0)) img.set(x, y, P.cityLights[3]);
-    return img;
-  });
-  return sheet(frames);
 }
 
 export function pendant() {

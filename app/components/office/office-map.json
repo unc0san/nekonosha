@@ -1,0 +1,124 @@
+{
+  "stage": { "width": 748, "height": 476 },
+  "origin": { "x": 314, "y": 88 },
+  "world": { "u": 420, "v": 300, "wall": 64, "low": 12, "glass": 44, "thick": 3 },
+  "rooms": {
+    "suite": { "u": 0, "v": 0, "du": 130, "dv": 120, "z": 8, "name": "社長室" },
+    "meeting": { "u": 130, "v": 0, "du": 150, "dv": 120, "z": 0, "name": "会議室" },
+    "studio": { "u": 280, "v": 0, "du": 140, "dv": 300, "z": 0, "name": "ワークスペース" },
+    "reception": { "u": 0, "v": 170, "du": 130, "dv": 130, "z": 0, "name": "受付" },
+    "lounge": { "u": 130, "v": 170, "du": 150, "dv": 130, "z": 0, "name": "ラウンジ" }
+  },
+  "corridor": { "u": 0, "v": 120, "du": 280, "dv": 50, "lane": 145 },
+  "walls": [
+    { "axis": "v", "at": 120, "from": 0, "to": 130, "doors": [[88, 124]], "height": 20 },
+    { "axis": "v", "at": 120, "from": 130, "to": 280, "doors": [[188, 224]], "glass": true },
+    { "axis": "u", "at": 130, "from": 0, "to": 120, "glass": true },
+    { "axis": "u", "at": 280, "from": 0, "to": 120, "glass": true },
+    { "axis": "v", "at": 170, "from": 0, "to": 280, "doors": [[88, 124], [198, 234]] },
+    { "axis": "u", "at": 130, "from": 170, "to": 300, "doors": [[236, 266]] },
+    { "axis": "u", "at": 280, "from": 170, "to": 300 },
+    { "axis": "v", "at": 300, "from": 0, "to": 422, "doors": [[30, 72]] },
+    { "axis": "u", "at": 420, "from": 0, "to": 300 }
+  ],
+  "stairs": { "u": 88, "du": 36, "v": 120, "steps": 4, "depth": 5 },
+  "props": [
+    { "id": "suite-shelf", "kind": "bookshelf", "u": 2, "v": 12 },
+    { "id": "suite-shelf-2", "kind": "bookshelf", "u": 2, "v": 56 },
+    { "id": "suite-plant", "kind": "plant", "u": 118, "v": 12 },
+
+    { "id": "meeting-table", "kind": "meeting-table", "u": 206, "v": 66 },
+    { "id": "meeting-plant", "kind": "plant", "u": 142, "v": 108 },
+    { "id": "meeting-plant-2", "kind": "plant-tall", "u": 268, "v": 108 },
+
+    { "id": "studio-cabinet", "kind": "cabinet", "u": 386, "v": 2 },
+    { "id": "studio-plant", "kind": "plant-tall", "u": 294, "v": 124 },
+    { "id": "studio-plant-2", "kind": "plant", "u": 408, "v": 288 },
+    { "id": "studio-plant-3", "kind": "plant-tall", "u": 294, "v": 286 },
+    { "id": "studio-lamp", "kind": "lamp", "u": 412, "v": 186 },
+
+    { "id": "corridor-plant", "kind": "plant-tall", "u": 10, "v": 132 },
+    { "id": "corridor-plant-2", "kind": "plant", "u": 150, "v": 161 },
+
+    { "id": "reception-counter", "kind": "counter", "u": 34, "v": 214 },
+    { "id": "reception-lamp", "kind": "lamp", "u": 12, "v": 288 },
+    { "id": "reception-plant", "kind": "plant-tall", "u": 12, "v": 182 },
+    { "id": "reception-plant-2", "kind": "plant", "u": 118, "v": 288 },
+
+    { "id": "lounge-bar", "kind": "coffee-bar", "u": 138, "v": 174 },
+    { "id": "lounge-table", "kind": "round-table", "u": 226, "v": 268 },
+    { "id": "lounge-lamp", "kind": "lamp", "u": 268, "v": 182 },
+    { "id": "lounge-plant", "kind": "plant-tall", "u": 268, "v": 288 },
+    { "id": "lounge-plant-2", "kind": "plant", "u": 142, "v": 290 }
+  ],
+  "trees": [
+    { "x": 70, "y": 150, "seed": 3, "size": 0.9 },
+    { "x": 150, "y": 110, "seed": 19, "size": 0.6 },
+    { "x": 600, "y": 152, "seed": 23, "size": 0.7 },
+    { "x": 680, "y": 175, "seed": 7, "size": 0.9 },
+    { "x": 96, "y": 452, "seed": 11 },
+    { "x": 660, "y": 456, "seed": 5 },
+    { "x": 64, "y": 350, "seed": 13, "size": 0.9 },
+    { "x": 684, "y": 372, "seed": 17, "size": 0.85 }
+  ],
+  "benches": [
+    { "u": 120, "v": 330, "along": "u" },
+    { "u": 300, "v": 330, "along": "u" },
+    { "u": 448, "v": 120, "along": "v" }
+  ],
+  "seats": {
+    "executive": { "u": 62, "v": 58 },
+    "host": [64, 204],
+    "sofa": { "u": 182, "v": 208, "du": 90 },
+    "station": { "width": 30, "depth": 16, "cat": [32, 15] }
+  },
+  "spots": {
+    "suite": {
+      "door": [106, 112],
+      "corridor": [106, 145],
+      "list": []
+    },
+    "meeting": {
+      "door": [206, 110],
+      "corridor": [206, 145],
+      "list": [
+        { "id": "seat-1", "kind": "chair", "at": [164, 28], "via": [[146, 100], [146, 14], [164, 14]] },
+        { "id": "seat-2", "kind": "chair", "at": [204, 28], "via": [[146, 100], [146, 14], [204, 14]] },
+        { "id": "seat-3", "kind": "chair", "at": [244, 28], "via": [[264, 100], [264, 14], [244, 14]] },
+        { "id": "seat-4", "kind": "chair", "at": [262, 70], "via": [[264, 100]] }
+      ]
+    },
+    "studio": {
+      "door": [290, 145],
+      "corridor": [272, 145],
+      "list": [
+        { "id": "desk:kohaku", "kind": "station", "at": [332, 31], "via": [[350, 145], [350, 31]] },
+        { "id": "desk:mitsumame", "kind": "station", "at": [392, 31], "via": [[410, 145], [410, 31]] },
+        { "id": "desk:mugi", "kind": "station", "at": [332, 81], "via": [[350, 145], [350, 81]] },
+        { "id": "desk:kurogoma", "kind": "station", "at": [392, 81], "via": [[410, 145], [410, 81]] },
+        { "id": "desk:omochi", "kind": "station", "at": [332, 211], "via": [[350, 145], [350, 211]] }
+      ]
+    },
+    "reception": {
+      "door": [106, 180],
+      "corridor": [106, 145],
+      "list": [
+        { "id": "counter", "kind": "stand", "at": [64, 250], "via": [[106, 250]] },
+        { "id": "waiting", "kind": "chair", "at": [100, 272], "via": [[112, 250]] },
+        { "id": "exit", "kind": "stand", "at": [51, 320], "via": [[106, 250], [51, 250]] }
+      ]
+    },
+    "lounge": {
+      "door": [216, 180],
+      "corridor": [216, 145],
+      "list": [
+        { "id": "coffee", "kind": "stand", "at": [166, 199], "via": [[216, 199]] },
+        { "id": "sofa-1", "kind": "sofa", "at": [200, 222], "via": [[216, 199], [172, 199], [172, 250], [200, 250]] },
+        { "id": "sofa-2", "kind": "sofa", "at": [227, 222], "via": [[216, 199], [172, 199], [172, 250], [227, 250]] },
+        { "id": "sofa-3", "kind": "sofa", "at": [254, 222], "via": [[216, 199], [172, 199], [172, 250], [254, 250]] },
+        { "id": "chair", "kind": "chair", "at": [154, 256], "via": [[216, 199], [160, 199], [160, 240]] },
+        { "id": "beanbag", "kind": "beanbag", "at": [186, 286], "via": [[216, 199], [172, 199], [172, 286]] }
+      ]
+    }
+  }
+}

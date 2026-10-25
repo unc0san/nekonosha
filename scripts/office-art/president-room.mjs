@@ -1,6 +1,7 @@
 // President's suite: every prop is its own sprite so it can be moved or swapped for hand-drawn PNGs later.
 import { Pixels, bayer, ellipseNormal, inEllipse, random, sheet } from "./lib/pixel.mjs";
 import * as P from "./palette.mjs";
+import { outdoorView } from "./daylight.mjs";
 
 const STAGE = { width: 320, height: 180, horizon: 96 };
 
@@ -28,28 +29,21 @@ export const roundedRect = (x0, y0, x1, y1, radius) => (x, y) => {
   return py > y0 + radius || Math.hypot(px - cx, py - cy) <= radius;
 };
 
-// ---------- Room shell: walls, night window, glossy floor ----------
+// ---------- Room shell: walls, daylight window, glossy floor ----------
 
 const WINDOW = { x0: 58, y0: 10, x1: 262, y1: 90, radius: 30 };
 const MULLIONS = [99, 140, 180, 221];
-
-function skyline(seed) {
-  const rand = random(seed), far = [], near = [];
-  for (let x = WINDOW.x0; x < WINDOW.x1;) { const w = 6 + Math.floor(rand() * 10); far.push({ x, w, top: 52 + Math.floor(rand() * 22) }); x += w; }
-  for (let x = WINDOW.x0 - 4; x < WINDOW.x1;) { const w = 8 + Math.floor(rand() * 14); near.push({ x, w, top: 58 + Math.floor(rand() * 22), lit: rand() }); x += w + Math.floor(rand() * 3); }
-  return { far, near };
-}
-
-const CITY = skyline(7);
 const inGlass = roundedRect(WINDOW.x0 + 3, WINDOW.y0 + 3, WINDOW.x1 - 3, WINDOW.y1, WINDOW.radius - 3);
 
-function cityWindows(rand) {
-  const lights = [];
-  for (const b of CITY.near) for (let y = b.top + 3; y < WINDOW.y1 - 2; y += 3) for (let x = b.x + 2; x < b.x + b.w - 2; x += 2) {
-    if (rand() < 0.38 + b.lit * 0.2) lights.push([x, y, rand()]);
-  }
-  return lights;
-}
+// The suite looks out over the lawn park toward Mt. Fuji (panorama x 0 is the mountain, as in every room).
+export const SUITE_VIEW = {
+  top: WINDOW.y0 + 3, horizon: 60, bottom: WINDOW.y1, pan: -226,
+  fuji: { x: 0, height: 31, half: 47 },
+  clouds: [[-140, 26, 30, 10], [-80, 40, 20, 6], [6, 18, 20, 6], [30, 44, 14, 4]],
+  benches: [[-108, 73, 1], [-36, 77, 1]],
+  trees: [[-151, 80, 9, 3], [-60, 66, 5, 8], [20, 72, 7, 5]],
+  seed: 21,
+};
 
 export function backdrop() {
   const img = new Pixels(STAGE.width, STAGE.height);
@@ -76,20 +70,14 @@ export function backdrop() {
     const d = (y - horizon) / 34;
     return [255, 253, 248, d < 0.3 ? 120 : d < 0.6 ? 70 : 32];
   });
-  // Faint cool reflection of the night sky right under the sill.
-  img.fill((x, y) => y > horizon + 2 && y < horizon + 8 && x > WINDOW.x0 + 10 && x < WINDOW.x1 - 10, [110, 120, 190, 34]);
+  // Faint reflection of the blue sky right under the sill.
+  img.fill((x, y) => y > horizon + 2 && y < horizon + 8 && x > WINDOW.x0 + 10 && x < WINDOW.x1 - 10, [140, 190, 235, 30]);
   // Contact shadow under the baseboard.
   img.rect(19, horizon, 283, 2, [120, 100, 90, 70]);
   img.rect(19, horizon - 4, 283, 4, P.wall[0]); img.rect(19, horizon - 4, 283, 1, "#c8baad");
 
-  // Night sky with stars, a moon and two layers of city.
-  const rand = random(3);
-  img.fill(inGlass, (x, y) => tone(P.sky, (y - WINDOW.y0) / (WINDOW.y1 - WINDOW.y0) * 1.05, x, y, 1.2));
-  for (let i = 0; i < 70; i++) { const x = WINDOW.x0 + Math.floor(rand() * 204), y = WINDOW.y0 + 4 + Math.floor(rand() * 40); if (inGlass(x, y)) img.set(x, y, rand() < 0.3 ? "#fff6dc" : [200, 210, 255, 150]); }
-  img.ellipse(236, 28, 6, 6, "#fff1c9"); img.ellipse(239, 26, 5.5, 5.5, P.sky[1]);
-  for (const b of CITY.far) img.fill((x, y) => inGlass(x, y) && x >= b.x && x < b.x + b.w && y >= b.top, P.cityFar);
-  for (const b of CITY.near) img.fill((x, y) => inGlass(x, y) && x >= b.x && x < b.x + b.w && y >= b.top, x => (x === b.x ? P.cityNear[1] : P.cityNear[0]));
-  for (const [x, y, r] of cityWindows(random(11))) if (inGlass(x, y) && r > 0.18) img.set(x, y, r > 0.8 ? P.cityLights[1] : r > 0.4 ? P.cityLights[0] : P.cityLights[2]);
+  // Daylight: sky, clouds, Mt. Fuji and the lawn park.
+  outdoorView(img, inGlass, SUITE_VIEW);
   // Glass sheen.
   for (const [x0, w] of [[78, 5], [92, 2], [196, 4]]) img.fill((x, y) => inGlass(x, y) && x - (y - WINDOW.y0) * 0.45 >= x0 && x - (y - WINDOW.y0) * 0.45 < x0 + w && y < 60, [255, 255, 255, 30]);
 
@@ -101,25 +89,6 @@ export function backdrop() {
   img.rect(WINDOW.x0 - 4, WINDOW.y1, WINDOW.x1 - WINDOW.x0 + 8, 3, P.shell[3]); img.rect(WINDOW.x0 - 4, WINDOW.y1 + 3, WINDOW.x1 - WINDOW.x0 + 8, 1, P.shell[1]);
   img.fill((x, y) => frameOuter(x, y) && !frameOuter(x - 1, y) || frameOuter(x, y) && !frameOuter(x + 1, y) || frameOuter(x, y) && !frameOuter(x, y - 1), "#b7aaa0");
   return img;
-}
-
-// A few city windows blink on and off; frame 2 swaps which ones are lit.
-export function cityTwinkle() {
-  const frames = [0, 1].map(frame => {
-    const img = new Pixels(STAGE.width, STAGE.height);
-    for (const [x, y, r] of cityWindows(random(11))) {
-      if (!inGlass(x, y) || r > 0.18) continue;
-      if ((r < 0.09) === (frame === 0)) img.set(x, y, P.cityLights[3]);
-    }
-    return img;
-  });
-  return sheet(frames.map(f => f.mask((x, y) => x >= WINDOW.x0 && x < WINDOW.x1 && y >= WINDOW.y0 && y < WINDOW.y1)).map(f => crop(f, WINDOW.x0, WINDOW.y0, WINDOW.x1 - WINDOW.x0, WINDOW.y1 - WINDOW.y0)));
-}
-
-function crop(src, x0, y0, w, h) {
-  const out = new Pixels(w, h);
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const c = src.get(x0 + x, y0 + y); if (c[3]) out.set(x, y, c); }
-  return out;
 }
 
 // ---------- Lighting ----------
@@ -271,6 +240,36 @@ export function eggChair() {
   onlyEmpty(img, inEllipse(cx, 64, 17, 3.5), [70, 30, 12, 90]);
   const front = img.mask((x, y) => y >= 47 || (y >= 36 && !opening(x, y)));
   return { back: img, front };
+}
+
+// Long space-age desk for two: a white racetrack top with an orange edge, a recessed panel and tulip feet. The
+// executives sit at either end facing each other, a laptop in front of each, a plant and two mugs in the middle.
+// `top` is the surface and what stands on it (behind the cats' bodies); `front` is the edge, panel and feet (in front).
+export const DUO_DESK = { w: 136, h: 50, surface: 24 };
+export function duoDesk() {
+  const { w, h, surface } = DUO_DESK, img = new Pixels(w, h), cx = w / 2;
+  const onTop = (x, y) => ((Math.max(0, Math.abs(x + 0.5 - cx) - 46) / 9) ** 2 + ((y + 0.5 - 16) / 8) ** 2) <= 1;
+  const edge = (x, y) => !onTop(x, y) && onTop(x, y - 3);
+  // Tulip feet and the recessed modesty panel between them.
+  for (const fx of [30, w - 30]) {
+    img.ball(fx, h - 4, 10, 3, P.shell);
+    img.shade((x, y) => y >= 24 && y < h - 4 && Math.abs(x + 0.5 - fx) < 2.5 + ((y - 24) / 22) ** 2 * 6, x => [(x + 0.5 - fx) / 8, 0, 0.9], P.shell);
+  }
+  img.fill((x, y) => x >= 36 && x < w - 36 && y >= 24 && y < 40, (x, y) => (y >= 31 && y < 33 ? P.orange[2] : tone(P.shell, 0.62 - (y - 24) / 80, x, y, 0.6)));
+  img.fill(edge, (x, y) => (onTop(x, y - 1) ? P.orange[3] : onTop(x, y - 2) ? P.orange[2] : P.orange[1]));
+  img.fill(onTop, (x, y) => tone(["#e2dcd4", "#efeae3", "#f8f5ef", "#fffdf9", "#ffffff"], 0.95 - (y - 8) / 40 - Math.abs(x - cx) / 400, x, y, 0.6));
+  img.fill((x, y) => onTop(x, y) && y < 13 && x > 22 && x < 60, [255, 255, 255, 120]);
+  // Plant in an orange pot and two mugs.
+  img.shade((x, y) => y >= 9 && y < 17 && Math.abs(x + 0.5 - cx) < 4.5 - (y - 9) * 0.2, x => [(x + 0.5 - cx) / 4, 0, 0.8], P.orange);
+  img.rect(cx - 5, 9, 10, 1, P.orange[3]);
+  leafShape(img, cx, 9, -2.3, 9, 2.4, random(1)); leafShape(img, cx, 9, -0.9, 9, 2.4, random(2)); leafShape(img, cx, 9, -1.6, 11, 2.4, random(3)); leafShape(img, cx, 9, -1.95, 8, 2, random(4));
+  for (const [mx, color] of [[cx - 14, P.shell], [cx + 11, P.orange]]) {
+    img.shade((x, y) => x >= mx && x < mx + 5 && y >= 12 && y < 18, x => [(x + 0.5 - mx - 2.5) / 3, 0, 0.8], color);
+    img.rect(mx, 12, 5, 1, "#6a4433"); img.rect(mx + 5, 13, 1, 1, color[1]); img.rect(mx + 6, 14, 1, 2, color[1]); img.rect(mx + 5, 16, 1, 1, color[1]);
+  }
+  img.outline(P.OUTLINE);
+  onlyEmpty(img, (x, y) => y >= h - 3 && (Math.abs(x + 0.5 - 30) < 13 || Math.abs(x + 0.5 - (w - 30)) < 13), [90, 30, 10, 80]);
+  return { top: img.mask((x, y) => y < surface), front: img.mask((x, y) => y >= surface) };
 }
 
 export function laptop() {
