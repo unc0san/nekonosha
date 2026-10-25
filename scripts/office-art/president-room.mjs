@@ -5,11 +5,11 @@ import * as P from "./palette.mjs";
 const STAGE = { width: 320, height: 180, horizon: 96 };
 
 // Picks a ramp color for a 0..1 value with ordered dithering between steps.
-const tone = (ramp, t, x, y, spread = 1) => ramp[Math.max(0, Math.min(ramp.length - 1, Math.floor(t * ramp.length + (bayer(x, y) - 0.5) * spread)))];
+export const tone = (ramp, t, x, y, spread = 1) => ramp[Math.max(0, Math.min(ramp.length - 1, Math.floor(t * ramp.length + (bayer(x, y) - 0.5) * spread)))];
 
-const onlyEmpty = (pixels, inside, color) => pixels.fill((x, y) => inside(x, y) && !pixels.opaque(x, y), color);
+export const onlyEmpty = (pixels, inside, color) => pixels.fill((x, y) => inside(x, y) && !pixels.opaque(x, y), color);
 
-function capsule(ax, ay, bx, by, r) {
+export function capsule(ax, ay, bx, by, r) {
   const dx = bx - ax, dy = by - ay, len = dx * dx + dy * dy;
   const project = (x, y) => Math.max(0, Math.min(1, ((x + 0.5 - ax) * dx + (y + 0.5 - ay) * dy) / len));
   return {
@@ -21,7 +21,7 @@ function capsule(ax, ay, bx, by, r) {
   };
 }
 
-const roundedRect = (x0, y0, x1, y1, radius) => (x, y) => {
+export const roundedRect = (x0, y0, x1, y1, radius) => (x, y) => {
   const px = x + 0.5, py = y + 0.5;
   if (px < x0 || px > x1 || py < y0 || py > y1) return false;
   const cx = Math.max(x0 + radius, Math.min(x1 - radius, px)), cy = Math.max(y0 + radius, py);
@@ -195,7 +195,7 @@ export function eggBookshelf() {
   return img;
 }
 
-function leafShape(img, bx, by, angle, length, width, rand) {
+export function leafShape(img, bx, by, angle, length, width, rand) {
   const tipX = bx + Math.cos(angle) * length, tipY = by + Math.sin(angle) * length;
   const cx = (bx + tipX) / 2, cy = (by + tipY) / 2;
   const cos = Math.cos(-angle), sin = Math.sin(-angle);
@@ -220,19 +220,20 @@ export function plant(seed, { width = 40, height = 64, potColor = "shell" } = {}
   return img;
 }
 
-export function rug() {
-  const img = new Pixels(214, 56);
+export function rug(width = 214, height = 56, ramp = P.rugOrange) {
+  const img = new Pixels(width, height);
+  const cx = width / 2, cy = height / 2, rx = cx - 3, ry = cy - 3;
   const rand = random(9);
   const jitter = Array.from({ length: 360 }, () => rand() * 0.035);
-  const inside = (x, y) => { const dx = (x + 0.5 - 107) / 104, dy = (y + 0.5 - 28) / 25; const a = Math.floor(((Math.atan2(dy, dx) + Math.PI) / (2 * Math.PI)) * 359); return dx * dx + dy * dy <= 1 - jitter[a]; };
+  const inside = (x, y) => { const dx = (x + 0.5 - cx) / rx, dy = (y + 0.5 - cy) / ry; const a = Math.floor(((Math.atan2(dy, dx) + Math.PI) / (2 * Math.PI)) * 359); return dx * dx + dy * dy <= 1 - jitter[a]; };
   img.fill(inside, (x, y) => {
-    const d = Math.hypot((x + 0.5 - 107) / 104, (y + 0.5 - 28) / 25);
-    if (Math.abs(d - 0.72) < 0.03 || Math.abs(d - 0.4) < 0.035) return P.rugOrange[3];
-    if (d > 0.9) return tone(P.rugOrange, 0.25 - (y - 28) / 200, x, y, 1.5);
-    return tone(P.rugOrange, 0.55 - (y - 28) / 90 + (rand() - 0.5) * 0.25, x, y, 1.6);
+    const d = Math.hypot((x + 0.5 - cx) / rx, (y + 0.5 - cy) / ry);
+    if (Math.abs(d - 0.72) < 0.03 || Math.abs(d - 0.4) < 0.035) return ramp[3];
+    if (d > 0.9) return tone(ramp, 0.25 - (y - cy) / 200, x, y, 1.5);
+    return tone(ramp, 0.55 - (y - cy) / 90 + (rand() - 0.5) * 0.25, x, y, 1.6);
   });
   // Fuzzy pile along the rim.
-  img.fill((x, y) => !inside(x, y) && (inside(x + 1, y) || inside(x - 1, y) || inside(x, y + 1)) && rand() < 0.6, P.rugOrange[0]);
+  img.fill((x, y) => !inside(x, y) && (inside(x + 1, y) || inside(x - 1, y) || inside(x, y + 1)) && rand() < 0.6, ramp[0]);
   onlyEmpty(img, (x, y) => inside(x, y - 1) && !inside(x, y), [120, 50, 20, 120]);
   return img;
 }
@@ -379,7 +380,10 @@ export function catBlink(name) {
 // `torso` is the body ellipse in tail-sprite pixels; the base is clipped there so the tail grows from behind the hip.
 export function tailSheet(name, torso) {
   const c = P.cats[name];
-  const ramp = name === "shirasu" ? c.mark : c.fur;
+  return tailFrames(name === "shirasu" ? c.mark : c.fur, torso, name === "ponzu" ? c.mark[1] : null);
+}
+
+export function tailFrames(ramp, torso, stripe) {
   const behindBody = inEllipse(torso.x, torso.y, torso.rx + 1, torso.ry + 1);
   const frames = [0, 1, 2, 1].map(step => {
     const img = new Pixels(16, 16);
@@ -391,7 +395,7 @@ export function tailSheet(name, torso) {
       return [0, 1].map(k => u ** 3 * curve[0][k] + 3 * u * u * t * curve[1][k] + 3 * u * t * t * curve[2][k] + t ** 3 * curve[3][k]);
     });
     points.forEach(([x, y], i) => img.ball(x, y, 2.5 - i * 0.05, 2.5 - i * 0.05, ramp));
-    if (name === "ponzu") for (const i of [6, 9, 12]) img.ellipse(points[i][0], points[i][1], 2, 1, c.mark[1]);
+    if (stripe) for (const i of [6, 9, 12]) img.ellipse(points[i][0], points[i][1], 2, 1, stripe);
     img.outline(P.OUTLINE);
     return img.mask((x, y) => !behindBody(x, y));
   });

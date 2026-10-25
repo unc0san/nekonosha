@@ -43,7 +43,7 @@
   left: calc(var(--x) * var(--px) * 1px);
   top: calc(var(--y) * var(--px) * 1px);
   transform: translate(-50%, -100%);
-  z-index: 20;
+  z-index: 3000;
   display: flex; gap: 3px; align-items: center;
   padding: calc(var(--px) * 1px) calc(var(--px) * 2.5px);
   background: #fffdf6;
@@ -65,7 +65,7 @@
   left: calc(var(--x) * var(--px) * 1px);
   top: calc(var(--y) * var(--px) * 1px);
   transform: translateX(-50%);
-  z-index: 20;
+  z-index: 3000;
   padding: 2px 10px;
   border: 2px solid #3a2b33;
   border-radius: 999px;
@@ -77,13 +77,30 @@
   white-space: nowrap;
 }
 
+.nameTag {
+  position: absolute;
+  left: calc(var(--x) * var(--px) * 1px);
+  top: calc(var(--y) * var(--px) * 1px);
+  transform: translateX(-50%);
+  z-index: 4000;
+  padding: 1px 8px;
+  border: 2px solid #3a2b33;
+  border-radius: 999px;
+  background: #ff752e;
+  color: #fff;
+  font-size: max(10px, calc(var(--px) * 3.5px));
+  font-weight: 800;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 .hit {
   position: absolute;
   left: calc(var(--x) * var(--px) * 1px);
   top: calc(var(--y) * var(--px) * 1px);
   width: calc(var(--w) * var(--px) * 1px);
   height: calc(var(--h) * var(--px) * 1px);
-  z-index: 30;
+  z-index: 5000;
   padding: 0; border: 0; background: none;
 }
 .hit:hover { background: #ffffff14; }
@@ -100,6 +117,12 @@
 .card > div, .card h3 { min-width: 0; }
 .badge { white-space: nowrap; background: #e4e9e2; padding: 6px 9px; color: #687562; font-size: 10px; }
 .badgeRest { background: #e2e7ed; color: #647488; }
+.badgeWalk { background: #ffeadb; color: #be5a2a; }
+
+.roster { contain: inline-size; display: flex; gap: 4px; padding: 10px 16px; background: #fafaf5; border-bottom: 1px solid #e3ddd4; overflow-x: auto; }
+.roster button { flex: 1; min-width: 64px; min-height: 44px; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 4px; border: 1px solid #e3ddd4; background: #fffdf8; font-size: 11px; font-weight: bold; color: #41393f; }
+.roster button small { font-size: 9px; font-weight: normal; color: #8b8178; }
+.roster button[aria-pressed="true"] { background: #ffede1; border-color: #ff752e; color: #a8471e; }
 
 @media (max-width: 760px) {
   .toolbar { padding: 8px 12px; }

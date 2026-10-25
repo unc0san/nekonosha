@@ -1,10 +1,13 @@
 // Generates the office PNG assets into public/office/.
-// Usage: node scripts/office-art/build.mjs [--preview path/to/preview.png]
+// Usage: node scripts/office-art/build.mjs [--preview president.png] [--studio-preview studio.png]
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Pixels, scaleUp } from "./lib/pixel.mjs";
 import * as room from "./president-room.mjs";
+import * as staff from "./staff-cats.mjs";
+import * as studio from "./work-studio.mjs";
+import * as P from "./palette.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const out = join(root, "public/office/president");
@@ -59,4 +62,57 @@ if (previewIndex > 0) {
   }
   scaleUp(stage, 4).save(process.argv[previewIndex + 1]);
   console.log(`Preview: ${process.argv[previewIndex + 1]}`);
+}
+
+// ---------- Work studio ----------
+const studioOut = join(root, "public/office/studio");
+const studioScene = JSON.parse(readFileSync(join(root, "app/components/office/work-studio.json"), "utf8"));
+const bag = studio.beanbag();
+const studioAssets = {
+  "room/backdrop.png": studio.backdrop(),
+  "room/city-twinkle.png": studio.cityTwinkle(),
+  "lights/pendant.png": studio.pendant(),
+  "lights/pendant-glow.png": studio.pendantGlow(),
+  "lights/floor-lamp.png": studio.floorLamp(),
+  "furniture/side-table.png": studio.sideTable(),
+  "furniture/beanbag-back.png": bag.back,
+  "furniture/beanbag-front.png": bag.front,
+  "furniture/lounge-rug.png": room.rug(88, 44, P.rugGray),
+  "furniture/plant.png": room.plant(33),
+};
+// Tail and body offsets are the same for every seat, so one tail sheet per cat fits desks and lounge alike.
+const { body, tail } = studioScene.seatLayout;
+for (const { id } of studioScene.staff) {
+  studioAssets[`cats/${id}-work.png`] = staff.seatedSheet(id, "type");
+  studioAssets[`cats/${id}-rest.png`] = staff.seatedSheet(id, "rest");
+  studioAssets[`cats/${id}-blink.png`] = staff.seatedBlink(id);
+  studioAssets[`cats/${id}-tail.png`] = staff.staffTail(id, { x: body.x - tail.x + 18, y: body.y - tail.y + 38, rx: 11, ry: 11.5 });
+  studioAssets[`cats/${id}-walk.png`] = staff.walkSheet(id);
+}
+for (const [file, pixels] of Object.entries(studioAssets)) pixels.save(join(studioOut, file));
+console.log(`Wrote ${Object.keys(studioAssets).length} sprites to ${studioOut}`);
+
+const studioPreviewIndex = process.argv.indexOf("--studio-preview");
+if (studioPreviewIndex > 0) {
+  const all = { ...Object.fromEntries(Object.entries(assets).map(([k, v]) => [`president/${k}`, v])), ...Object.fromEntries(Object.entries(studioAssets).map(([k, v]) => [`studio/${k}`, v])) };
+  const stage = new Pixels(studioScene.stage.width, studioScene.stage.height);
+  const L = studioScene.seatLayout, layers = studioScene.props.map(p => ({ img: all[p.src], x: p.x, y: p.y, w: p.w, z: p.base * 10 }));
+  const add = (src, x, y, w, z, flip = false) => layers.push({ img: all[src], x, y, w, z, flip });
+  for (const desk of studioScene.desks) {
+    const { x, y } = desk.chair, z = (y + 66) * 10;
+    add("studio/lights/pendant-glow.png", x + L.glow.x, y + L.glow.y, 48, 4); add("studio/lights/pendant.png", x + L.pendant.x, L.pendant.y, 14, 5);
+    add("president/furniture/egg-chair-back.png", x, y, 56, z); add("studio/furniture/side-table.png", x + L.table.x, y + L.table.y, 30, z + 1);
+    add(`studio/cats/${desk.staff}-work.png`, x + L.body.x, y + L.body.y, 42, z + 2); add("president/furniture/egg-chair-front.png", x, y, 56, z + 3);
+    add(`studio/cats/${desk.staff}-tail.png`, x + L.tail.x, y + L.tail.y, 16, z + 4); add("president/furniture/laptop.png", x + L.laptop.x, y + L.laptop.y, 20, z + 5);
+  }
+  const [chair, beanbag] = studioScene.lounge;
+  add("president/furniture/egg-chair-back.png", chair.chair.x, chair.chair.y, 56, (chair.chair.y + 66) * 10, true);
+  add("president/furniture/egg-chair-front.png", chair.chair.x, chair.chair.y, 56, (chair.chair.y + 66) * 10 + 3, true);
+  add("studio/furniture/beanbag-back.png", beanbag.chair.x, beanbag.chair.y, 46, (beanbag.chair.y + 26) * 10);
+  add(`studio/cats/omochi-rest.png`, beanbag.chair.x, beanbag.chair.y - 31, 42, (beanbag.chair.y + 26) * 10 + 2, true);
+  add("studio/furniture/beanbag-front.png", beanbag.chair.x, beanbag.chair.y, 46, (beanbag.chair.y + 26) * 10 + 3);
+  add("studio/cats/mugi-walk.png", 120, studioScene.aisleY - 40, 44, studioScene.aisleY * 10 + 5);
+  for (const layer of layers.sort((a, b) => a.z - b.z)) stage.blit(new Pixels(layer.w, layer.img.height).blit(layer.img, 0, 0), layer.x, layer.y, { flip: layer.flip });
+  scaleUp(stage, 3).save(process.argv[studioPreviewIndex + 1]);
+  console.log(`Studio preview: ${process.argv[studioPreviewIndex + 1]}`);
 }

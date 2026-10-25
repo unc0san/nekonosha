@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import sceneData from "./president-room.json";
 import styles from "./office-stage.module.css";
+import { Sprite as StageSprite, useStageScale, type Point, type SpriteProps } from "./stage";
 
 type OfficeTask = { title: string; owner: string; done: boolean };
-type Point = { x: number; y: number };
 type Prop = { id: string; src: string; x: number; y: number; w: number; h: number; z: number; frames?: number; duration?: number; effect?: "glow" };
 type Seat = { cat: string; sprite: string; label: string; role: string; flip: boolean; chair: Point; body: Point; tail: Point; laptop: Point };
 type Scene = { stage: { width: number; height: number }; props: Prop[]; seats: Seat[] };
@@ -13,27 +13,13 @@ type Scene = { stage: { width: number; height: number }; props: Prop[]; seats: S
 const scene = sceneData as Scene;
 const ASSETS = "/office/president/";
 
-// Every prop, cat part and piece of furniture is its own PNG layer positioned in stage pixels.
-function Sprite({ src, x, y, w, h, z, frames = 1, duration = 1, flip = false, className = "" }: Omit<Prop, "id" | "effect"> & { flip?: boolean; className?: string }) {
-  const style = { "--x": x, "--y": y, "--w": w, "--h": h, "--z": z, "--frames": frames, "--duration": `${duration}s`, backgroundImage: `url(${ASSETS}${src})` } as CSSProperties;
-  return <span aria-hidden="true" className={`${styles.sprite} ${frames > 1 ? styles.animated : ""} ${flip ? styles.flip : ""} ${className}`} style={style}/>;
-}
+const Sprite = ({ src, ...props }: SpriteProps) => <StageSprite src={`${ASSETS}${src}`} {...props}/>;
 
 export default function PresidentSuite({ department, tasks }: { department: string; tasks: OfficeTask[] }) {
-  const frame = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(3);
   const [paused, setPaused] = useState(false);
   const [selected, setSelected] = useState(0);
   const { width, height } = scene.stage;
-
-  // Integer scaling keeps every art pixel square; narrow screens scroll instead of blurring.
-  useEffect(() => {
-    const element = frame.current;
-    if (!element) return;
-    const observer = new ResizeObserver(([entry]) => setScale(Math.max(2, Math.floor(entry.contentRect.width / width))));
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [width]);
+  const { frame, scale } = useStageScale(width);
 
   const states = scene.seats.map(seat => {
     const task = tasks.find(item => !item.done && item.owner === seat.cat);

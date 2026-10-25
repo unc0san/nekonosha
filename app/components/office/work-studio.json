@@ -1,0 +1,32 @@
+{
+  "stage": { "width": 368, "height": 180 },
+  "aisleY": 160,
+  "seatLayout": { "body": { "x": 11, "y": -2 }, "tail": { "x": 8, "y": 38 }, "table": { "x": 37, "y": 25 }, "laptop": { "x": 43, "y": 19 }, "stand": { "x": 26, "y": 72 }, "pendant": { "x": 23, "y": 0 }, "glow": { "x": 6, "y": -2 } },
+  "entrance": { "x": -30, "y": 160 },
+  "props": [
+    { "id": "backdrop", "src": "studio/room/backdrop.png", "x": 0, "y": 0, "w": 368, "h": 180, "base": 0 },
+    { "id": "city-twinkle", "src": "studio/room/city-twinkle.png", "x": 0, "y": 0, "w": 368, "h": 48, "base": 1, "frames": 2, "duration": 3.4 },
+    { "id": "lounge-rug", "src": "studio/furniture/lounge-rug.png", "x": 280, "y": 118, "w": 88, "h": 44, "base": 2 },
+    { "id": "floor-lamp-glow", "src": "studio/lights/pendant-glow.png", "x": 329, "y": 37, "w": 48, "h": 40, "base": 3, "effect": "glow" },
+    { "id": "floor-lamp", "src": "studio/lights/floor-lamp.png", "x": 344, "y": 48, "w": 18, "h": 62, "base": 110 },
+    { "id": "plant-corner", "src": "studio/furniture/plant.png", "x": -6, "y": 112, "w": 40, "h": 64, "base": 172 }
+  ],
+  "staff": [
+    { "id": "kohaku", "name": "こはく", "coat": "サビ猫", "role": "プランナー" },
+    { "id": "mitsumame", "name": "みつまめ", "coat": "三毛猫", "role": "デザイナー" },
+    { "id": "mugi", "name": "むぎ", "coat": "キジトラ", "role": "マーケター" },
+    { "id": "kurogoma", "name": "くろごま", "coat": "黒猫", "role": "エンジニア" },
+    { "id": "omochi", "name": "おもち", "coat": "白猫", "role": "品質管理" }
+  ],
+  "desks": [
+    { "staff": "kohaku", "chair": { "x": 16, "y": 68 }, "labels": { "広告事業部": "営業企画", "EC事業部": "商品企画" } },
+    { "staff": "mitsumame", "chair": { "x": 70, "y": 68 }, "labels": { "広告事業部": "制作・デザイン", "EC事業部": "商品ページ制作" } },
+    { "staff": "mugi", "chair": { "x": 124, "y": 68 }, "labels": { "広告事業部": "メディア・PR", "EC事業部": "販促・SNS" } },
+    { "staff": "kurogoma", "chair": { "x": 178, "y": 68 }, "labels": { "広告事業部": "リサーチ", "EC事業部": "在庫・データ" } },
+    { "staff": "omochi", "chair": { "x": 232, "y": 68 }, "labels": { "広告事業部": "事務サポート", "EC事業部": "カスタマー対応" } }
+  ],
+  "lounge": [
+    { "id": "lounge-chair", "kind": "chair", "chair": { "x": 298, "y": 62 }, "stand": { "x": 300, "y": 142 } },
+    { "id": "beanbag", "kind": "beanbag", "chair": { "x": 304, "y": 138 }, "stand": { "x": 294, "y": 160 } }
+  ]
+}

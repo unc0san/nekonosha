@@ -7,6 +7,7 @@ export const sideWall = ["#c4b6aa", "#cfc2b6", "#dacec2"];
 export const floor = ["#c7bfb6", "#d3ccc4", "#ded8d1", "#e9e5df", "#f3f0eb"];
 export const shell = ["#b9aea8", "#d6cec7", "#ebe6df", "#fbf8f2", "#ffffff"];
 export const orange = ["#a83f1a", "#d1561d", "#ee6f26", "#ff8d3a", "#ffb067"];
+export const rugGray = ["#a39a92", "#b6aea6", "#c8c1ba", "#d8d2cc"];
 export const rugOrange = ["#c4501b", "#e0631f", "#f2772a", "#fb8f3d"];
 export const sky = ["#121733", "#181f40", "#1f284f", "#28325f", "#353b6e", "#4a4579"];
 export const cityFar = "#2b3263";
