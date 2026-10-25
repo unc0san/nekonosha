@@ -1,0 +1,112 @@
+/* Layered pixel-art stage. Positions are in art pixels; --px is the integer zoom. */
+.suite { background: #2a2230; }
+
+.toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 16px; background: #f5f2ec; border-bottom: 1px solid #ddd6cc; font-size: 11px; }
+.toolbar b { font: 9px monospace; letter-spacing: 1px; color: #8d8478; margin-left: 6px; }
+.toolbar button { min-height: 32px; padding: 6px 10px; border: 1px solid #c9bfb3; background: #fffdf8; font-size: 10px; color: #41393f; }
+.toolbar button[aria-pressed="true"] { background: #3a2b33; color: #fff; }
+.status { display: inline-block; width: 6px; height: 6px; background: #ff752e; margin-right: 4px; }
+
+/* Wall and floor tones continue past the stage so wide panels have no empty bars.
+   inline-size containment stops the wide stage from stretching the mobile grid. */
+.frame { contain: inline-size; overflow-x: auto; overscroll-behavior-x: contain; background: linear-gradient(#eee6db 53.3%, #c2b4a8 53.3%, #c2b4a8 54.4%, #dcd6cf 54.4%); scrollbar-color: #ff752e #3a2b33; scrollbar-width: thin; }
+
+.stage { position: relative; width: calc(var(--stage-w) * var(--px) * 1px); height: calc(var(--stage-h) * var(--px) * 1px); margin: 0 auto; overflow: hidden; }
+
+.sprite {
+  position: absolute;
+  left: calc(var(--x) * var(--px) * 1px);
+  top: calc(var(--y) * var(--px) * 1px);
+  width: calc(var(--w) * var(--px) * 1px);
+  height: calc(var(--h) * var(--px) * 1px);
+  z-index: var(--z);
+  background-repeat: no-repeat;
+  background-size: calc(var(--w) * var(--frames) * var(--px) * 1px) 100%;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+.seat { display: contents; }
+.flip { transform: scaleX(-1); }
+.animated { animation: play var(--duration) steps(var(--frames)) infinite; }
+@keyframes play { to { background-position-x: calc(var(--w) * var(--frames) * var(--px) * -1px); } }
+
+.glow { animation: glow 3.6s steps(3, end) infinite alternate; }
+@keyframes glow { from { opacity: .65; } to { opacity: 1; } }
+
+/* Eyelids are hidden almost all the time and flash briefly. */
+.blink { opacity: 0; animation: blink 4.8s steps(1, end) infinite; }
+.blinkLate { animation-delay: -2.1s; animation-duration: 5.6s; }
+@keyframes blink { 0%, 93% { opacity: 0; } 94%, 97% { opacity: 1; } }
+
+.bubble {
+  position: absolute;
+  left: calc(var(--x) * var(--px) * 1px);
+  top: calc(var(--y) * var(--px) * 1px);
+  transform: translate(-50%, -100%);
+  z-index: 20;
+  display: flex; gap: 3px; align-items: center;
+  padding: calc(var(--px) * 1px) calc(var(--px) * 2.5px);
+  background: #fffdf6;
+  border: 2px solid #3a2b33;
+  box-shadow: 2px 2px 0 #3a2b3340;
+  font: bold max(10px, calc(var(--px) * 3.5px)) monospace;
+  color: #8a8fa6;
+  white-space: nowrap;
+}
+.bubble i { width: calc(var(--px) * 1.5px); height: calc(var(--px) * 1.5px); background: #3a2b33; animation: dot 1.2s steps(1, end) infinite; }
+.bubble i:nth-child(2) { animation-delay: .2s; }
+.bubble i:nth-child(3) { animation-delay: .4s; }
+@keyframes dot { 0%, 49% { opacity: 1; } 50%, 100% { opacity: .25; } }
+.resting .bubble { animation: snooze 3s steps(3, end) infinite; }
+@keyframes snooze { 50% { transform: translate(-50%, calc(-100% - 6px)); opacity: .6; } }
+
+.label {
+  position: absolute;
+  left: calc(var(--x) * var(--px) * 1px);
+  top: calc(var(--y) * var(--px) * 1px);
+  transform: translateX(-50%);
+  z-index: 20;
+  padding: 2px 10px;
+  border: 2px solid #3a2b33;
+  border-radius: 999px;
+  background: #fffdf6;
+  box-shadow: 0 2px 0 #3a2b33;
+  font-size: max(10px, calc(var(--px) * 4px));
+  font-weight: 800;
+  color: #3a2b33;
+  white-space: nowrap;
+}
+
+.hit {
+  position: absolute;
+  left: calc(var(--x) * var(--px) * 1px);
+  top: calc(var(--y) * var(--px) * 1px);
+  width: calc(var(--w) * var(--px) * 1px);
+  height: calc(var(--h) * var(--px) * 1px);
+  z-index: 30;
+  padding: 0; border: 0; background: none;
+}
+.hit:hover { background: #ffffff14; }
+.hit:focus-visible { outline: 3px solid #ff752e; outline-offset: -3px; }
+.selected .label { background: #ff752e; color: #fff; }
+
+.paused * { animation-play-state: paused !important; }
+
+.card { display: flex; gap: 16px; align-items: center; padding: 16px 20px; background: #fafaf5; border-left: 4px solid #ff752e; }
+.card h3 { font-size: 17px; margin: 6px 0; }
+.card h3 small { font-size: 10px; font-weight: normal; margin-left: 12px; color: #727a82; }
+.card p { flex: 1; font-size: 11px; line-height: 1.8; margin: 0; overflow-wrap: anywhere; }
+.kicker { font: 8px monospace; color: #8b9297; letter-spacing: 1px; }
+.card > div, .card h3 { min-width: 0; }
+.badge { white-space: nowrap; background: #e4e9e2; padding: 6px 9px; color: #687562; font-size: 10px; }
+.badgeRest { background: #e2e7ed; color: #647488; }
+
+@media (max-width: 760px) {
+  .toolbar { padding: 8px 12px; }
+  .card { flex-wrap: wrap; padding: 14px 12px; gap: 8px; }
+  .card p { flex-basis: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage * { animation: none !important; }
+}

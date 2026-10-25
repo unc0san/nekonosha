@@ -1,0 +1,39 @@
+{
+  "stage": { "width": 320, "height": 180 },
+  "props": [
+    { "id": "backdrop", "src": "room/backdrop.png", "x": 0, "y": 0, "w": 320, "h": 180, "z": 0 },
+    { "id": "city-twinkle", "src": "room/city-twinkle.png", "x": 58, "y": 10, "w": 204, "h": 80, "z": 1, "frames": 2, "duration": 3.2 },
+    { "id": "chandelier-glow", "src": "lights/chandelier-glow.png", "x": 70, "y": -10, "w": 180, "h": 90, "z": 2, "effect": "glow" },
+    { "id": "chandelier", "src": "lights/chandelier.png", "x": 100, "y": 0, "w": 120, "h": 50, "z": 3 },
+    { "id": "cat-lamp", "src": "lights/cat-lamp.png", "x": 268, "y": 0, "w": 32, "h": 40, "z": 3 },
+    { "id": "bookshelf", "src": "furniture/egg-bookshelf.png", "x": 24, "y": 30, "w": 46, "h": 70, "z": 4 },
+    { "id": "rug", "src": "furniture/rug.png", "x": 53, "y": 124, "w": 214, "h": 56, "z": 5 },
+    { "id": "plant-left", "src": "furniture/plant-tall.png", "x": -6, "y": 58, "w": 40, "h": 64, "z": 6 },
+    { "id": "plant-right", "src": "furniture/plant-wide.png", "x": 284, "y": 62, "w": 40, "h": 64, "z": 6 },
+    { "id": "table", "src": "furniture/tulip-table.png", "x": 126, "y": 98, "w": 68, "h": 58, "z": 11 }
+  ],
+  "seats": [
+    {
+      "cat": "しらす",
+      "sprite": "shirasu",
+      "label": "しらす社長",
+      "role": "代表取締役 / 社長",
+      "flip": false,
+      "chair": { "x": 86, "y": 88 },
+      "body": { "x": 97, "y": 86 },
+      "tail": { "x": 94, "y": 126 },
+      "laptop": { "x": 133, "y": 110 }
+    },
+    {
+      "cat": "ぽんず",
+      "sprite": "ponzu",
+      "label": "ぽんず秘書",
+      "role": "秘書 / 業務サポート",
+      "flip": true,
+      "chair": { "x": 178, "y": 88 },
+      "body": { "x": 181, "y": 86 },
+      "tail": { "x": 210, "y": 126 },
+      "laptop": { "x": 167, "y": 110 }
+    }
+  ]
+}

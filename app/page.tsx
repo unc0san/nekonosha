@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import PixelOffice from "./components/pixel-office";
+import PresidentSuite from "./components/office/president-suite";
 
 type Department = "広告事業部" | "EC事業部";
 type Task = { id: number; title: string; project: string; owner: string; due: string; done: boolean; priority: boolean };
@@ -31,27 +33,13 @@ function Cat({ orange = false, small = false }: { orange?: boolean; small?: bool
   </svg>;
 }
 
-function Office({ department }: { department: Department }) {
-  return <div className="office-scene" role="img" aria-label={`${department}のオフィス。オレンジ色のスペースエイジ家具で、しらすとぽんずが働いています。`}>
-    <div className="wall-line"/><div className="window"><i/><i/><i/></div>
-    <div className="wall-poster">NEKO<br/><b>WORK</b><span>GOOD IDEAS. GOOD NAPS.</span></div>
-    <div className="clock"><span/></div><div className="shelf"><i/><i/><i/><i/></div>
-    <div className="plant"><div className="leaves">✦</div><div className="pot"/></div>
-    <div className="rug"/><div className="sofa"><i/><i/></div><div className="side-table"/>
-    <div className="desk desk-one"><div className="monitor"><span>NEKO OS<br/>&gt; thinking_</span></div><div className="keyboard"/><div className="mug"/></div>
-    <div className="desk desk-two"><div className="monitor"><span>HELLO, BOSS!<br/>&gt; working_</span></div><div className="keyboard"/><div className="mug"/></div>
-    <div className="office-cat shirasu"><div className="speech">ひらめいた、にゃ。</div><Cat/><span>しらす <i>社長</i></span></div>
-    <div className="office-cat ponzu"><div className="speech">まかせてください！</div><Cat orange/><span>ぽんず <i>秘書</i></span></div>
-    <div className="floor-caption">NEKONOSHA HQ · {department === "広告事業部" ? "CREATIVE STUDIO" : "COMMERCE STUDIO"}</div>
-  </div>;
-}
-
 export default function Home() {
   const [department, setDepartment] = useState<Department>("広告事業部");
   const [tasks, setTasks] = useState(initialTasks);
   const [instruction, setInstruction] = useState("");
   const [messages, setMessages] = useState(["おはようございます、社長！ 今日もいっしょに、いい仕事をしましょう。何かあれば、ぽんずにおまかせください。"]);
   const [read, setRead] = useState(false);
+  const [officeView, setOfficeView] = useState<"suite" | "map">("suite");
   const current = tasks[department];
   const completed = current.filter(task => task.done).length;
   function submitInstruction(e: React.FormEvent<HTMLFormElement>) {
@@ -73,9 +61,9 @@ export default function Home() {
       <div className="main-content">
         <section className="page-heading"><div className="eyebrow">LET’S MAKE SOMETHING GOOD.</div><div className="heading-row"><div><h1>おはようございます、社長<span>✳</span></h1><p>猫たちは今日も、いいアイデアをあたためています。</p></div><div className="date-label">2026.10.25 <span>SUN</span><small><i/> オフィスは営業中</small></div></div></section>
         <div className="department-bar"><div role="tablist" aria-label="事業部切り替え">{(["広告事業部", "EC事業部"] as Department[]).map((name, index) => <button key={name} role="tab" aria-selected={department === name} onClick={() => setDepartment(name)} className={department === name ? "selected" : ""}><span>0{index + 1}</span>{name}</button>)}</div><span className="sample-label">サンプルワークスペース</span></div>
-        <section className="stats" aria-label="進捗状況"><article><span>進行中のタスク <i>↗</i></span><strong>{current.length - completed}<small>件</small></strong><p>ひとつずつ、着実に。</p></article><article><span>タスク完了率 <i>◴</i></span><strong>{Math.round(completed / current.length * 100)}<small>%</small></strong><div className="progress-track"><div style={{ width: `${completed / current.length * 100}%` }}/></div></article><article><span>出勤中の猫社員 <i>♧</i></span><strong>02<small>匹</small></strong><p><b className="green-dot"/> 全員、元気にはたらいています</p></article></section>
+        <section className="stats" aria-label="進捗状況"><article><span>進行中のタスク <i>↗</i></span><strong>{current.length - completed}<small>件</small></strong><p>ひとつずつ、着実に。</p></article><article><span>タスク完了率 <i>◴</i></span><strong>{Math.round(completed / current.length * 100)}<small>%</small></strong><div className="progress-track"><div style={{ width: `${completed / current.length * 100}%` }}/></div></article><article><span>出勤中の猫社員 <i>♧</i></span><strong>07<small>匹</small></strong><p><b className="green-dot"/> 全員、元気にはたらいています</p></article></section>
         <div className="dashboard-grid"><div className="left-column">
-          <section className="panel office-panel" id="office"><div className="panel-heading"><h2><span>01 /</span> 猫脳社オフィス</h2><span className="live-label"><i/> LIVE <small>サンプル</small></span></div><Office department={department}/><div className="office-footer"><span><i/> {department}のようす</span><span>ときどき休憩。それも仕事。</span></div></section>
+          <section className="panel office-panel" id="office"><div className="panel-heading"><h2><span>01 /</span> 猫脳社オフィス</h2><span className="live-label"><i/> LIVE <small>サンプル</small></span></div><div className="office-view-switch" role="group" aria-label="オフィスの表示切り替え"><button aria-pressed={officeView === "suite"} onClick={() => setOfficeView("suite")}>社長室（新デザイン試作）</button><button aria-pressed={officeView === "map"} onClick={() => setOfficeView("map")}>全体マップ（現行）</button></div>{officeView === "suite" ? <PresidentSuite department={department} tasks={current}/> : <PixelOffice department={department} tasks={current}/>}<div className="office-footer"><span><i/> {department}のようす</span><span>ときどき休憩。それも仕事。</span></div></section>
           <section className="panel tasks-panel" id="tasks"><div className="panel-heading"><h2><span>02 /</span> 今日のタスク</h2><span className="count-label">{completed} / {current.length} 完了</span></div><div className="task-list">{current.map(task => <div className={`task-row ${task.done ? "done" : ""}`} key={task.id}><button className="checkbox" aria-label={`${task.title}を${task.done ? "未完了" : "完了"}にする`} aria-pressed={task.done} onClick={() => setTasks(previous => ({ ...previous, [department]: previous[department].map(item => item.id === task.id ? { ...item, done: !item.done } : item) }))}>{task.done ? "✓" : ""}</button><div className="task-copy"><strong>{task.title}</strong><small>{task.project}</small></div><span className="task-owner">{task.owner}</span><span className={`due ${task.priority && !task.done ? "urgent" : ""}`}>{task.done ? "完了" : task.due}</span></div>)}</div><div className="task-footer">小さな一歩が、大きな仕事になる。<span>KEEP IT GOING ↗</span></div></section>
         </div><div className="right-column">
           <section className="panel secretary-panel"><div className="panel-heading"><h2><span>03 /</span> 秘書のデスク</h2><span>✳</span></div><div className="secretary-profile"><div className="avatar"><Cat orange/></div><div><h3>ぽんず<small>秘書 / ASSISTANT</small></h3><span><i/> お手伝いできます</span></div></div><div className="message" aria-live="polite"><span>PONZU SAYS</span><p>{messages[messages.length - 1]}</p></div><form onSubmit={submitInstruction}><label htmlFor="instruction">ぽんずへの指示</label><textarea id="instruction" placeholder="例：明日の会議の準備をお願い" value={instruction} onChange={e => setInstruction(e.target.value)} maxLength={200}/><button type="submit" disabled={!instruction.trim()}>ぽんずにお願いする <span>↗</span></button><small>デモ機能：指示はサンプルタスクに追加されます</small></form></section>
