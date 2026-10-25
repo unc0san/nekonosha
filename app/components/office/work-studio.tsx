@@ -4,8 +4,8 @@ import { useEffect, useState, type CSSProperties } from "react";
 import sceneData from "./work-studio.json";
 import styles from "./office-stage.module.css";
 import { Sprite, useStageScale, type Point } from "./stage";
+import { openTasksByStaff, type OfficeTask } from "./staff";
 
-type OfficeTask = { title: string; owner: string; done: boolean };
 type Prop = { id: string; src: string; x: number; y: number; w: number; h: number; base: number; frames?: number; duration?: number; effect?: "glow" };
 type Staff = { id: string; name: string; coat: string; role: string };
 type Desk = { staff: string; chair: Point; labels: Record<string, string> };
@@ -35,8 +35,7 @@ const baseOf = (spot: Spot) => spot.chair.y + (spot.kind === "beanbag" ? 26 : 66
 // Tasks are shared round-robin across the five staff; anyone without open work heads for the lounge.
 // Cats already resting in the lounge keep their spot (`held`), so finishing a task never reshuffles the others.
 function planFor(tasks: OfficeTask[], held: Record<string, string> = {}): Record<string, Plan> {
-  const open: Record<string, OfficeTask[]> = {};
-  tasks.forEach((task, index) => { if (!task.done) (open[scene.staff[index % scene.staff.length].id] ??= []).push(task); });
+  const open = openTasksByStaff(tasks);
   const resting = scene.staff.filter(({ id }) => !open[id]).map(({ id }) => id);
   const keep = Object.fromEntries(resting.filter(id => held[id] && !held[id].startsWith("desk:")).map(id => [id, held[id]]));
   const free = scene.lounge.map(spot => spot.id).filter(spot => !Object.values(keep).includes(spot));

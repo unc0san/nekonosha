@@ -13,7 +13,8 @@ export function Sprite({ src, x, y, w, h, z, frames = 1, duration = 1, flip = fa
 }
 
 // Integer scaling keeps every art pixel square; narrow screens scroll instead of blurring.
-export function useStageScale(width: number) {
+// `center` starts a scrollable stage at its middle instead of the left wall.
+export function useStageScale(width: number, { center = false } = {}) {
   const frame = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(3);
   useEffect(() => {
@@ -23,5 +24,9 @@ export function useStageScale(width: number) {
     observer.observe(element);
     return () => observer.disconnect();
   }, [width]);
+  useEffect(() => {
+    const element = frame.current;
+    if (center && element) element.scrollLeft = (element.scrollWidth - element.clientWidth) / 2;
+  }, [center, scale]);
   return { frame, scale };
 }

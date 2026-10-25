@@ -1,5 +1,5 @@
 // Generates the office PNG assets into public/office/.
-// Usage: node scripts/office-art/build.mjs [--preview president.png] [--studio-preview studio.png]
+// Usage: node scripts/office-art/build.mjs [--preview president.png] [--studio-preview studio.png] [--meeting-preview meeting.png]
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -7,6 +7,7 @@ import { Pixels, scaleUp } from "./lib/pixel.mjs";
 import * as room from "./president-room.mjs";
 import * as staff from "./staff-cats.mjs";
 import * as studio from "./work-studio.mjs";
+import * as meeting from "./meeting-room.mjs";
 import * as P from "./palette.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -115,4 +116,52 @@ if (studioPreviewIndex > 0) {
   for (const layer of layers.sort((a, b) => a.z - b.z)) stage.blit(new Pixels(layer.w, layer.img.height).blit(layer.img, 0, 0), layer.x, layer.y, { flip: layer.flip });
   scaleUp(stage, 3).save(process.argv[studioPreviewIndex + 1]);
   console.log(`Studio preview: ${process.argv[studioPreviewIndex + 1]}`);
+}
+
+// ---------- Meeting room ----------
+const meetingOut = join(root, "public/office/meeting");
+const meetingAssets = {
+  "room/backdrop.png": meeting.backdrop(),
+  "room/whiteboard.png": meeting.whiteboard(),
+  "room/monitor.png": meeting.monitor(),
+  "room/monitor-glow.png": meeting.monitorGlow(),
+  "room/front-glass.png": meeting.frontGlass(),
+  "lights/saucer-lamp.png": meeting.saucerLamp(),
+  "lights/saucer-glow.png": meeting.saucerGlow(),
+  "furniture/oval-table.png": meeting.ovalTable(),
+  "furniture/table-items.png": meeting.tableItems(),
+  "furniture/armchair-back.png": meeting.armchairBack(),
+  "furniture/rug.png": room.rug(240, 70, P.rugGray),
+  "furniture/plant-left.png": room.plant(41),
+  "furniture/plant-right.png": room.plant(52),
+};
+for (const { id } of studioScene.staff) for (const view of ["front", "side"]) for (const pose of ["speak", "nod", "read"]) {
+  meetingAssets[`cats/${id}-${view}-${pose}.png`] = staff.meetingSheet(id, view, pose);
+}
+for (const [file, pixels] of Object.entries(meetingAssets)) pixels.save(join(meetingOut, file));
+console.log(`Wrote ${Object.keys(meetingAssets).length} sprites to ${meetingOut}`);
+
+const meetingPreviewIndex = process.argv.indexOf("--meeting-preview");
+if (meetingPreviewIndex > 0) {
+  const meetingScene = JSON.parse(readFileSync(join(root, "app/components/office/meeting-room.json"), "utf8"));
+  const all = { ...Object.fromEntries(Object.entries(assets).map(([k, v]) => [`president/${k}`, v])), ...Object.fromEntries(Object.entries(studioAssets).map(([k, v]) => [`studio/${k}`, v])), ...Object.fromEntries(Object.entries(meetingAssets).map(([k, v]) => [`meeting/${k}`, v])) };
+  const stage = new Pixels(meetingScene.stage.width, meetingScene.stage.height);
+  const L = studioScene.seatLayout, layers = meetingScene.props.map(p => ({ img: all[p.src], x: p.x, y: p.y, w: p.w, z: p.z }));
+  const add = (src, x, y, w, z, flip = false) => layers.push({ img: all[src], x, y, w, z, flip });
+  meetingScene.seats.forEach((seat, i) => {
+    const pose = ["speak", "nod", "read"][i % 3];
+    if (seat.view === "front") {
+      add("meeting/furniture/armchair-back.png", seat.body.x + 2, seat.body.y + 18, 38, 10);
+      add(`meeting/cats/${seat.staff}-front-${pose}.png`, seat.body.x, seat.body.y, 42, 14);
+      return;
+    }
+    const { x, y } = seat.chair, f = seat.flip;
+    add("president/furniture/egg-chair-back.png", x, y, 56, 11, f);
+    add(`meeting/cats/${seat.staff}-side-${pose}.png`, f ? x + 56 - L.body.x - 42 : x + L.body.x, y + L.body.y, 42, 14, f);
+    add("president/furniture/egg-chair-front.png", x, y, 56, 15, f);
+    add(`studio/cats/${seat.staff}-tail.png`, f ? x + 56 - L.tail.x - 16 : x + L.tail.x, y + L.tail.y, 16, 16, f);
+  });
+  for (const layer of layers.sort((a, b) => a.z - b.z)) stage.blit(new Pixels(layer.w, layer.img.height).blit(layer.img, 0, 0), layer.x, layer.y, { flip: layer.flip });
+  scaleUp(stage, 3).save(process.argv[meetingPreviewIndex + 1]);
+  console.log(`Meeting preview: ${process.argv[meetingPreviewIndex + 1]}`);
 }

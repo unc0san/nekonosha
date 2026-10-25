@@ -86,10 +86,12 @@ function drawHead(img, coat, ox, hy) {
   }
 }
 
-function drawFace(img, coat, ox, hy, closed) {
+function drawFace(img, coat, ox, hy, closed, { mouthOpen = false, lookDown = false } = {}) {
   const eye = "#2b2129";
   for (const ex of [10 + ox, 22 + ox]) {
     if (closed) { img.rect(ex, hy + 1, 4, 1, eye); img.set(ex - 1, hy, eye); img.set(ex + 4, hy, eye); continue; }
+    // Reading: lids half down, gaze on the papers.
+    if (lookDown) { img.rect(ex, hy, 3, 2, eye); img.rect(ex - 1, hy - 1, 5, 1, eye); if (coat.iris) img.set(ex + 1, hy + 1, coat.iris); continue; }
     img.rect(ex, hy - 2, 3, 4, eye); img.set(ex + 1, hy - 3, eye); img.set(ex + 1, hy + 2, eye);
     if (coat.iris) for (const [x, y] of [[ex, hy - 1], [ex, hy], [ex + 2, hy - 1], [ex + 2, hy]]) img.set(x, y, coat.iris);
     img.set(ex, hy - 2, "#ffffff"); img.set(ex + 2, hy + 1, [255, 255, 255, 170]);
@@ -97,6 +99,7 @@ function drawFace(img, coat, ox, hy, closed) {
   img.rect(16 + ox, hy + 3, 2, 1, "#ec7f95");
   const mouth = coat.whisker ? [190, 170, 180] : P.OUTLINE;
   img.set(16 + ox, hy + 4, mouth); img.set(17 + ox, hy + 4, mouth); img.set(15 + ox, hy + 5, mouth); img.set(18 + ox, hy + 5, mouth);
+  if (mouthOpen) { img.rect(16 + ox, hy + 5, 2, 2, "#5a2a35"); img.set(16 + ox, hy + 6, "#ec7f95"); }
   for (const bx of [7 + ox, 25 + ox]) img.rect(bx, hy + 3, 3, 1, [255, 140, 160, 150]);
   const whisker = coat.whisker ?? [90, 70, 80, 150];
   for (const [x0, x1, y] of [[-1, 3, hy + 2], [-1, 3, hy + 5], [31, 35, hy + 2], [31, 35, hy + 5]]) img.line(x0 + 1 + ox, y, x1 + ox, y + (y > hy + 3 ? 1 : 0), whisker);
@@ -171,3 +174,55 @@ function walkFrame(coat, frame) {
 }
 
 export const walkSheet = name => sheet([0, 1, 2, 3].map(frame => walkFrame(STAFF[name], frame)));
+
+// ---------- Meeting poses ----------
+// Poses: "speak" (paw gestures, mouth moves), "nod" (head bobs, eyes shut), "read" (looking down at papers).
+
+function papers(img, x0, y0, w, h, flip) {
+  img.rect(x0, y0, w, h, "#fbf9f4");
+  img.rect(x0, y0 + h - 1, w, 1, "#d9d3ca");
+  for (let y = y0 + 2; y < y0 + h - 2; y += 2) img.rect(x0 + 2, y, w - 4 - ((y / 2) % 3), 1, "#b8b2bd");
+  img.rect(x0 + 2, y0 + 1, 4, 1, P.orange[2]);
+  // Second frame lifts the corner as if turning the page.
+  if (flip) img.polygon([[x0 + w - 4, y0], [x0 + w, y0], [x0 + w, y0 + 4]], "#e7e1d8");
+}
+
+const armTo = (img, coat, ax, ay, bx, by) => {
+  const arm = capsule(ax, ay, bx, by, 3.2);
+  img.shade(arm.inside, arm.normal, coat.fur);
+  img.ball(bx, by, 3.2, 2.6, coat.fur.slice(1));
+};
+
+// Facing the viewer from behind the table. Everything below y=40 is cut flat so it meets the table edge.
+function meetingFrontFrame(coat, pose, frame) {
+  const img = new Pixels(42, 46);
+  const hy = 15 + (pose === "nod" && frame === 1 ? 2 : 0) + (pose === "read" ? 1 : 0);
+  shadePart(img, coat, "body", 21, 38, 12, 10, inEllipse(21, 38, 12, 10));
+  img.shade(inEllipse(21, 27, 8, 3), ellipseNormal(21, 27, 8, 3), coat.fur);
+  const torso = img.mask((x, y) => y <= 40);
+  const out = new Pixels(42, 46).blit(torso, 0, 0);
+  if (pose === "read") papers(out, 13, 37, 17, 8, frame === 1);
+  if (pose === "speak") { armTo(out, coat, 12, 33, 12, 42); armTo(out, coat, 30, 31, frame ? 35 : 33, frame ? 24 : 28); }
+  else { armTo(out, coat, 12, 33, 13, 42); armTo(out, coat, 30, 33, 29, 42); }
+  drawHead(out, coat, 4, hy);
+  out.outline(P.OUTLINE);
+  drawFace(out, coat, 4, hy, pose === "nod" && frame === 1, { mouthOpen: pose === "speak" && frame === 1, lookDown: pose === "read" });
+  return out;
+}
+
+// Side-on at the table ends, same framing as the desk pose so chairs and tails line up.
+function meetingSideFrame(coat, pose, frame) {
+  const img = new Pixels(42, 50);
+  const hy = 15 + (pose === "nod" && frame === 1 ? 2 : 0) + (pose === "read" ? 1 : 0);
+  shadePart(img, coat, "body", 18, 38, 11, 11.5, inEllipse(18, 38, 11, 11.5));
+  img.shade(inEllipse(18, 27, 8, 3), ellipseNormal(18, 27, 8, 3), coat.fur);
+  if (pose === "read") { papers(img, 26, 30, 12, 9, frame === 1); armTo(img, coat, 22, 32, 27, 36); armTo(img, coat, 23, 35, 36, 38); }
+  else if (pose === "speak") { armTo(img, coat, 22, 31, 31, 34); armTo(img, coat, 23, 33, frame ? 33 : 31, frame ? 22 : 26); }
+  else { armTo(img, coat, 22, 31, 32, 34); armTo(img, coat, 23, 35, 34, 37); }
+  drawHead(img, coat, 0, hy);
+  img.outline(P.OUTLINE);
+  drawFace(img, coat, 0, hy, pose === "nod" && frame === 1, { mouthOpen: pose === "speak" && frame === 1, lookDown: pose === "read" });
+  return img;
+}
+
+export const meetingSheet = (name, view, pose) => sheet([0, 1].map(frame => (view === "front" ? meetingFrontFrame : meetingSideFrame)(STAFF[name], pose, frame)));

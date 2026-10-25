@@ -55,6 +55,15 @@ iPhone で見る場合は Mac と同じ Wi-Fi に接続し、起動ログの `Ne
 - 猫や下の名前ボタンを押すと、名前・役職・担当タスク・状態を表示します。
 - 配置は `app/components/office/work-studio.json`、画像は `public/office/studio/`（椅子とノートPCは社長室と共通）です。
 
+## 会議室（新デザイン試作）
+
+オフィス欄の「会議室（新デザイン試作）」で、ガラス張りの会議室を表示します。オレンジの楕円テーブル、チューリップチェアとエッグチェア、壁面モニター（スライドが切り替わります）、ホワイトボード、観葉植物、UFO型のペンダントライトを配置しています。
+
+- 5匹の社員がテーブルを囲み、約4.5秒ごとに発言者が交代します。発言中の猫は手ぶりと口の動きで話し、吹き出しに担当タスクの進捗（担当がなければ事業部ごとのサンプル発言）を表示します。
+- 担当タスクが残っている猫は資料を読み、担当がない猫はうなずきます。タスクの分担は作業スペースと同じです（`app/components/office/staff.ts`）。
+- 猫や下の名前ボタンを押すと、名前・役職・担当タスク・いまの様子を表示します。一時停止中は発言者も交代しません。
+- 配置とサンプル発言は `app/components/office/meeting-room.json`、画像は `public/office/meeting/` です。
+
 ## 開発用コマンド
 
 ```bash
@@ -72,7 +81,7 @@ npm start
 - `app/globals.css`：Tailwind CSS の読み込みと画面・家具のスタイル
 - `app/layout.tsx`：日本語設定とページ情報
 - `app/components/pixel-office.tsx`：オフィス、猫社員、タスクと連動するアニメーション
-- `app/components/office/`：社長室・作業スペース（試作）の描画と配置データ
+- `app/components/office/`：社長室・作業スペース・会議室（試作）の描画と配置データ
 - `scripts/office-art/`：ドット絵 PNG の生成スクリプト
 
 Next.js App Router・TypeScript・Tailwind CSS v4 を使用しています。猫はインライン SVG、家具は CSS で描画しているため、画像配信サービスや外部フォントへの接続も必要ありません。

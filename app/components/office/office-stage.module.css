@@ -77,6 +77,31 @@
   white-space: nowrap;
 }
 
+/* Meeting speech bubble: wraps long task titles and points down at the speaker. */
+.speech {
+  position: absolute;
+  left: calc(var(--x) * var(--px) * 1px);
+  top: calc(var(--y) * var(--px) * 1px);
+  transform: translate(-50%, -100%);
+  z-index: 3000;
+  width: max-content;
+  max-width: max(150px, calc(var(--px) * 64px));
+  padding: 4px 9px;
+  border: 2px solid #3a2b33;
+  border-radius: 10px;
+  background: #fffdf6;
+  box-shadow: 2px 2px 0 #3a2b3340;
+  font-size: max(10px, calc(var(--px) * 3.4px));
+  font-weight: bold;
+  line-height: 1.5;
+  color: #3a2b33;
+  pointer-events: none;
+}
+.speech::after { content: ""; position: absolute; left: 50%; bottom: -8px; transform: translateX(-50%); border: 6px solid transparent; border-top-color: #3a2b33; border-bottom: 0; }
+
+.agenda { margin: 0; padding: 9px 16px; background: #f5f2ec; border-bottom: 1px solid #e3ddd4; font-size: 11px; color: #6f675f; }
+.agenda b { color: #a8471e; margin-right: 8px; }
+
 .nameTag {
   position: absolute;
   left: calc(var(--x) * var(--px) * 1px);

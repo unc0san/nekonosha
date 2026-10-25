@@ -1,0 +1,40 @@
+{
+  "stage": { "width": 368, "height": 180 },
+  "props": [
+    { "id": "backdrop", "src": "meeting/room/backdrop.png", "x": 0, "y": 0, "w": 368, "h": 180, "z": 0 },
+    { "id": "monitor-glow", "src": "meeting/room/monitor-glow.png", "x": 123, "y": -2, "w": 130, "h": 84, "z": 1, "effect": "glow" },
+    { "id": "whiteboard", "src": "meeting/room/whiteboard.png", "x": 34, "y": 14, "w": 86, "h": 46, "z": 2 },
+    { "id": "monitor", "src": "meeting/room/monitor.png", "x": 142, "y": 12, "w": 92, "h": 56, "z": 2, "frames": 3, "duration": 12 },
+    { "id": "rug", "src": "meeting/furniture/rug.png", "x": 64, "y": 106, "w": 240, "h": 70, "z": 3 },
+    { "id": "lamp-glow", "src": "meeting/lights/saucer-glow.png", "x": 84, "y": 76, "w": 200, "h": 70, "z": 4, "effect": "glow" },
+    { "id": "plant-left", "src": "meeting/furniture/plant-left.png", "x": 14, "y": 104, "w": 40, "h": 64, "z": 6 },
+    { "id": "plant-right", "src": "meeting/furniture/plant-right.png", "x": 314, "y": 100, "w": 40, "h": 64, "z": 6 },
+    { "id": "table", "src": "meeting/furniture/oval-table.png", "x": 94, "y": 94, "w": 180, "h": 70, "z": 12 },
+    { "id": "table-items", "src": "meeting/furniture/table-items.png", "x": 94, "y": 94, "w": 180, "h": 70, "z": 17 },
+    { "id": "lamp", "src": "meeting/lights/saucer-lamp.png", "x": 146, "y": -16, "w": 76, "h": 34, "z": 18 },
+    { "id": "front-glass", "src": "meeting/room/front-glass.png", "x": 0, "y": 0, "w": 368, "h": 180, "z": 20 }
+  ],
+  "seats": [
+    { "staff": "kohaku", "view": "side", "chair": { "x": 66, "y": 85 }, "flip": false },
+    { "staff": "mitsumame", "view": "front", "body": { "x": 125, "y": 60 } },
+    { "staff": "mugi", "view": "front", "body": { "x": 163, "y": 58 } },
+    { "staff": "kurogoma", "view": "front", "body": { "x": 201, "y": 60 } },
+    { "staff": "omochi", "view": "side", "chair": { "x": 246, "y": 85 }, "flip": true }
+  ],
+  "lines": {
+    "広告事業部": {
+      "kohaku": "今週のスケジュールを確認します。",
+      "mitsumame": "バナー案を3パターン用意しました！",
+      "mugi": "SNSの反応、なかなか好調です。",
+      "kurogoma": "クリック率の数字を共有します。",
+      "omochi": "入稿前のチェックはおまかせください。"
+    },
+    "EC事業部": {
+      "kohaku": "秋のギフト企画をまとめました。",
+      "mitsumame": "商品ページの写真を差し替えます。",
+      "mugi": "セールの告知はSNSから始めます。",
+      "kurogoma": "在庫と売上のデータを見てみましょう。",
+      "omochi": "お客さまの声を3件ご紹介します。"
+    }
+  }
+}
