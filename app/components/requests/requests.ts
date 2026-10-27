@@ -11,8 +11,9 @@ export const DEPARTMENTS: Department[] = ["広告事業部", "EC事業部"];
 export type Kind = "plan" | "copy" | "sns" | "email" | "report" | "product" | "memo";
 export const KIND_LABEL: Record<Kind, string> = { plan: "企画案", copy: "文章案", sns: "SNS投稿案", email: "メール文案", report: "レポート", product: "商品ページ案", memo: "作業メモ" };
 
-// working: being made (or remade after a change request); review: handed in, waiting for the president; approved: done.
-export type Status = "working" | "review" | "approved";
+// The same four states are used by sample tasks and requests.
+export type Status = "pending" | "working" | "review" | "completed";
+export const STATUS_LABEL: Record<Status, string> = { pending: "未着手", working: "作業中", review: "確認待ち", completed: "完了" };
 export type Due = { date: string; label: string; said: boolean };
 export type WorkRequest = {
   id: number; text: string; subject: string; department: Department; kind: Kind; staff: string; reason: string;
@@ -122,7 +123,7 @@ export function createRequest(text: string, fallback: Department, now: number): 
   return {
     id: now, text: text.trim(), subject: subjectOf(text), department, kind, staff, reason, due,
     urgent: daysUntil(dateOf(due)) <= 0 || /至急|急ぎ|ASAP/.test(t), external: EXTERNAL.test(text),
-    status: "working", startedAt: now, duration: DURATION[kind], versions: [], revisions: [],
+    status: "pending", startedAt: now, duration: DURATION[kind], versions: [], revisions: [],
   };
 }
 
@@ -138,6 +139,7 @@ const STEPS: Record<Kind, string[]> = {
 };
 
 export function progressOf(r: WorkRequest, now: number) {
+  if (r.status === "pending") return { routing: false, ratio: 0, step: "作業開始を待っています", left: 0 };
   if (r.status !== "working") return { routing: false, ratio: 1, step: "", left: 0 };
   const elapsed = Math.max(0, now - r.startedAt), routing = r.revisions.length === 0 && elapsed < ROUTING_MS;
   const start = r.revisions.length ? 0 : ROUTING_MS, ratio = routing ? 0 : Math.min(1, (elapsed - start) / (r.duration - start));
@@ -150,14 +152,14 @@ export const isFinished = (r: WorkRequest, now: number) => r.status === "working
 
 // The cat hands in the next version (taking the latest change request into account).
 export const handIn = (r: WorkRequest): WorkRequest => ({ ...r, status: "review", versions: [...r.versions, makeDeliverable(r, r.versions.length + 1, r.revisions.at(-1))] });
-export const approve = (r: WorkRequest): WorkRequest => ({ ...r, status: "approved" });
+export const approve = (r: WorkRequest): WorkRequest => ({ ...r, status: "completed" });
 export const revise = (r: WorkRequest, note: string, now: number): WorkRequest => ({ ...r, status: "working", startedAt: now, duration: Math.round(DURATION[r.kind] * REWORK), revisions: [...r.revisions, note.trim()] });
 // Demo shortcut: finish now.
 export const hurry = (r: WorkRequest, now: number): WorkRequest => ({ ...r, startedAt: now - r.duration });
 
-export function statusLabel(r: WorkRequest, now: number) {
-  if (r.status === "approved") return "承認済み";
-  if (r.status === "review") return "確認待ち";
-  if (progressOf(r, now).routing) return "振り分け中";
-  return r.revisions.length ? "修正中" : "作業中";
+export function statusLabel(r: WorkRequest, _now: number) {
+  void _now;
+  return STATUS_LABEL[r.status];
 }
+
+export const startRequest = (r: WorkRequest, now: number): WorkRequest => r.status === "pending" ? { ...r, status: "working", startedAt: now } : r;

@@ -111,3 +111,5 @@
   .deskWrap { margin-top: 18px; }
   .examples > button[type="button"] { min-height: 40px; font-size: 11px; }
 }
+
+.pending { background: #eeeee7; color: #62675c; }
