@@ -211,12 +211,14 @@ export default function OfficeMap({ department, tasks, onOpenRoom }: { departmen
     if (exec) { const task = tasks.find(t => !t.done && t.owner === exec.cat); return task ? { label: "作業中", room: "suite", job: `パソコンで「${task.title}」に取り組んでいます。` } : { label: "休憩中", tone: "rest", room: "suite", job: "担当タスクが完了。席でうたた寝しています。" }; }
     if (id === HOST.id) return { label: hostTalking ? "ご案内中" : "受付中", room: "reception", job: `来客対応・ご案内（いまのお客さま：${guest.name}）` };
     const actor = sim.actors[id], room = roomOfSpot(actor.dest);
-    if (!actor.seat) return { label: "移動中", tone: "walk", room, job: `${plan.rooms[room].name}へ向かっています。` };
+    if (!actor.seat) return { label: "移動中", tone: "walk", room, job: open[id]?.[0]?.request && room === "studio" ? `依頼「${open[id][0].title}」を受けて、デスクへ急いでいます。` : `${plan.rooms[room].name}へ向かっています。` };
     if (id === "guest") return { label: { counter: "受付中", waiting: "待合で待機中", "seat-4": "打ち合わせ中" }[actor.seat] ?? "お帰り", tone: actor.seat === "waiting" ? "rest" : undefined, room, job: `ご用件：${guest.purpose}` };
     const spot = actor.seat;
     if (spot === "coffee") return { label: "コーヒー休憩", tone: "rest", room, job: "コーヒーマシンでひと息。すぐ戻ります。" };
     if (MEETING_SEATS.includes(spot)) return { label: "会議中", room, job: `会議室で「${open[id]?.[0]?.title ?? "進め方"}」の打ち合わせ中。` };
-    if (spot.startsWith("desk:")) return { label: "作業中", room, job: `パソコンで「${open[id]?.[0]?.title ?? "仕事"}」を進めています。` };
+    if (spot.startsWith("desk:")) return open[id]?.[0]?.request
+      ? { label: "依頼対応中", room, job: `ぽんず経由の依頼「${open[id][0].title}」に集中しています。終わったら成果物を提出します。` }
+      : { label: "作業中", room, job: `パソコンで「${open[id]?.[0]?.title ?? "仕事"}」を進めています。` };
     return { label: SOFA_POSES[spot]?.label ?? "ひと休み中", tone: "rest", room, job: "担当分が片づいたので、ラウンジでのんびり休憩中。" };
   };
 
@@ -298,7 +300,8 @@ export default function OfficeMap({ department, tasks, onOpenRoom }: { departmen
         {/* Work studio: one computer station per staff cat */}
         {Object.values(SPOTS).filter(s => s.kind === "station").map(s => {
           const id = sitter(s.id);
-          return <div key={s.id} className={styles.seat}><Station spot={s.at} cat={id}>{box => id && pick(id, box.x + 6, box.y + 4, 46)}</Station></div>;
+          // A cat busy with a request from ぽんず wears a small tag over its head.
+          return <div key={s.id} className={styles.seat}><Station spot={s.at} cat={id}>{box => id && <>{pick(id, box.x + 6, box.y + 4, 46)}{open[id]?.[0]?.request && <span className={styles.workBadge} style={at(box.x + 26, box.y - 2)} aria-hidden="true">依頼対応中</span>}</>}</Station></div>;
         })}
 
         {/* Lounge: sofa and beanbag */}

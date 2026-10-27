@@ -1,0 +1,113 @@
+/* Requests to ぽんず and their deliverables. Same flat, square look as the dashboard panels. */
+.count { font: 10px monospace; color: #b96137; }
+.safety { margin: 0; padding: 10px 20px; font-size: 10px; line-height: 1.7; color: #6f7466; background: #f0f1e9; border-bottom: 1px solid var(--line); }
+.safety b, .reason b { display: inline-block; margin-right: 8px; padding: 1px 6px; font: bold 9px monospace; letter-spacing: .5px; color: #fff; background: var(--green); }
+.empty { margin: 0; padding: 28px 20px; font-size: 11px; line-height: 1.9; color: var(--muted); }
+
+.layout { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); }
+.list { list-style: none; margin: 0; padding: 0; border-right: 1px solid var(--line); max-height: 720px; overflow-y: auto; }
+.item { display: flex; gap: 10px; align-items: center; width: 100%; min-height: 64px; padding: 10px 14px; text-align: left; border: 0; border-bottom: 1px solid #e9eae2; background: transparent; color: var(--ink); }
+.item[aria-current="true"] { background: #f7efe6; box-shadow: inset 3px 0 var(--orange); }
+.itemText { flex: 1; min-width: 0; }
+.itemText strong { display: block; font-size: 11px; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
+.itemText small { display: block; margin-top: 3px; font-size: 9px; color: #999d8f; }
+.itemText .bar { margin-top: 6px; }
+
+.face { flex-shrink: 0; width: 44px; height: 42px; background-repeat: no-repeat; background-position: 0 0; image-rendering: pixelated; }
+.chip { flex-shrink: 0; display: inline-block; padding: 4px 7px; font-size: 9px; white-space: nowrap; background: #eaece3; color: #6f7466; }
+.chip.working { background: #f8e5d7; color: #b96137; }
+.chip.review { background: #ff752e; color: #fff; font-weight: bold; }
+.chip.approved { background: #e3ead8; color: #5d6f4f; }
+.bar { display: block; height: 5px; background: #e6e7de; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--orange); transition: width .5s linear; }
+
+.detail { min-width: 0; padding: 20px 22px 24px; }
+.detailHead h3 { margin: 6px 0 0; font-size: 16px; line-height: 1.5; overflow-wrap: anywhere; }
+.kind { font: 9px monospace; letter-spacing: 1px; color: var(--orange); }
+.quote { margin: 8px 0 0; font-size: 11px; line-height: 1.8; color: var(--muted); overflow-wrap: anywhere; }
+.meta { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; margin: 16px 0 0; background: var(--line); border: 1px solid var(--line); }
+.meta > div { padding: 10px 12px; background: #fdfdf9; min-width: 0; }
+.meta dt { font: 9px monospace; letter-spacing: .5px; color: #969b8a; }
+.meta dd { margin: 6px 0 0; font-size: 12px; font-weight: 600; overflow-wrap: anywhere; }
+.meta dd small { display: block; margin-top: 3px; font-size: 9px; font-weight: normal; color: var(--muted); }
+.meta dd.urgent { color: #b96137; }
+.owner { display: flex; align-items: center; gap: 6px; }
+.owner .face { margin: -6px 0 -6px -6px; }
+.link { display: block; margin-top: 4px; padding: 0; border: 0; background: none; font-size: 10px; color: #b96137; text-decoration: underline; min-height: 24px; text-align: left; }
+.reason { margin: 12px 0 0; font-size: 11px; line-height: 1.8; color: #5f6458; }
+.warn { margin: 12px 0 0; padding: 10px 12px; font-size: 11px; line-height: 1.8; color: #8a4a26; background: #fbeee3; border-left: 3px solid var(--orange); }
+
+.steps { display: flex; list-style: none; margin: 18px 0 0; padding: 0; counter-reset: step; }
+.steps li { flex: 1; position: relative; padding-top: 22px; font-size: 10px; text-align: center; color: #a3a898; counter-increment: step; }
+.steps li::before { content: counter(step); position: absolute; top: 0; left: 50%; transform: translateX(-50%); z-index: 1; width: 18px; height: 18px; line-height: 18px; font: 9px/18px monospace; background: #e6e7de; color: #8d9281; }
+.steps li + li::after { content: ""; position: absolute; top: 9px; right: 50%; width: 100%; height: 2px; background: #e6e7de; }
+.steps li.past, .steps li.now { color: var(--ink); }
+.steps li.past::before { content: "✓"; background: var(--green); color: #fff; }
+.steps li.now::before { background: var(--orange); color: #fff; }
+.steps li.past::after, .steps li.now::after { background: var(--green); }
+.steps li.now { font-weight: bold; }
+
+.progress { margin-top: 16px; padding: 12px 14px; background: #f7f3ec; border: 1px solid #ece2d6; }
+.progressRow { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 11px; }
+.progressRow b { font: 13px monospace; color: #b96137; }
+.progressRow small { font-size: 9px; line-height: 1.6; color: var(--muted); }
+.progress .bar { margin: 8px 0; height: 8px; }
+
+.paper { margin-top: 18px; padding: 18px 20px; background: #fff; border: 1px solid #e0ddd3; box-shadow: 4px 4px 0 #ece7dc; }
+.paperHead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; font: 9px monospace; letter-spacing: .5px; color: #969b8a; }
+.versions { display: flex; gap: 4px; }
+.versions button { min-height: 32px; min-width: 44px; padding: 4px 10px; font-size: 10px; border: 1px solid #d3cabf; background: #fffdf8; color: #6f675f; }
+.versions button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
+.paper h4 { margin: 12px 0 0; font-size: 14px; line-height: 1.6; }
+.lead { margin: 8px 0 0; font-size: 12px; line-height: 1.9; color: #5f6458; }
+.section { margin-top: 16px; }
+.section h5 { margin: 0 0 6px; padding-left: 8px; font-size: 11px; border-left: 3px solid var(--orange); }
+.section p { margin: 0; font-size: 13px; line-height: 1.9; overflow-wrap: anywhere; }
+.changes { padding: 10px 12px; background: #eef2e6; }
+.changes h5 { border-color: var(--green); }
+.paper > .ghost { margin-top: 16px; }
+
+.actions { display: grid; gap: 10px; margin-top: 18px; }
+.actions form { display: grid; gap: 8px; padding: 14px; background: #f5f2ec; border: 1px solid #e5ddd1; }
+.actions label { font-size: 11px; font-weight: bold; }
+.actions textarea { width: 100%; min-height: 72px; resize: vertical; padding: 10px; border: 1px solid #d8dccd; border-radius: 0; background: #fff; color: var(--ink); font: 12px/1.8 inherit; }
+.actions > small { font-size: 9px; color: #9ba18e; text-align: center; }
+.primary, .secondary, .ghost { min-height: 44px; padding: 10px 16px; font-size: 12px; font-weight: bold; border-radius: 0; }
+.primary { background: var(--orange); border: 1px solid #cd6532; color: #fff; }
+.secondary { background: var(--ink); border: 1px solid var(--ink); color: #fff; }
+.ghost { min-height: 36px; padding: 6px 12px; font-size: 10px; font-weight: normal; background: #fffdf8; border: 1px solid #d3cabf; color: #6f675f; white-space: nowrap; }
+.done { margin: 18px 0 0; padding: 12px 14px; font-size: 11px; line-height: 1.8; color: #4f6142; background: #e8eedf; }
+.history { margin-top: 16px; font-size: 10px; color: var(--muted); }
+.history summary { cursor: pointer; min-height: 32px; line-height: 32px; }
+.history ol { margin: 4px 0 0; padding-left: 18px; line-height: 1.8; }
+
+@media (max-width: 980px) {
+  .layout { grid-template-columns: 1fr; }
+  .list { border-right: 0; border-bottom: 1px solid var(--line); max-height: 260px; }
+  .meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .safety { padding: 10px 16px; }
+  .detail { padding: 16px 16px 20px; }
+  .paper { padding: 16px 14px; box-shadow: none; }
+  .progressRow { flex-wrap: wrap; }
+  /* iOS zooms into inputs smaller than 16px. */
+  .actions textarea { font-size: 16px; }
+  .section p { font-size: 14px; }
+}
+
+/* Bits of the dashboard that point at requests. */
+.deskWrap { margin-top: 22px; }
+.taskMark { display: grid; place-items: center; color: #b96137; border-color: #e3b89c; background: #fbeee3; }
+.taskLink { color: inherit; text-decoration: none; }
+.taskLink:hover strong, a.taskLink:hover { text-decoration: underline; }
+.taskStatus { font-weight: bold; color: #b96137; }
+.messageLinks { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 8px; }
+.messageLinks a, .messageLinks button { min-height: 32px; padding: 0; border: 0; background: none; font-size: 10px; font-weight: bold; color: #b96137; text-decoration: underline; display: inline-flex; align-items: center; }
+.examples { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+/* Inside the secretary form, so it has to outweigh the form's full-width orange button style. */
+.examples > button[type="button"] { display: block; width: auto; min-height: 32px; margin: 0; padding: 4px 9px; font-size: 9px; font-weight: normal; line-height: 1.5; text-align: left; border: 1px solid #ddd6cc; background: #fffdf8; color: #6f675f; }
+@media (max-width: 760px) {
+  .deskWrap { margin-top: 18px; }
+  .examples > button[type="button"] { min-height: 40px; font-size: 11px; }
+}

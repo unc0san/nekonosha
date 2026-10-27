@@ -88,6 +88,7 @@ export default function WorkStudio({ department, tasks }: { department: string; 
     const actor = actors[id], plan = plans[id];
     if (!actor.seat) return { mode: "walk" as const, label: "移動中", job: actor.dest === AWAY ? (plan.duty === "meeting" ? "会議室へ向かっています。" : "ラウンジへ向かっています。") : `デスクへ向かっています：${plan.task?.title}` };
     if (actor.seat === AWAY) return { mode: "rest" as const, ...AWAY_STATUS[plan.duty] };
+    if (plan.task?.request) return { mode: "work" as const, label: "依頼対応中", job: `ぽんず経由の依頼に集中しています：${plan.task.title}（終わったら成果物を提出します）` };
     return { mode: "work" as const, label: "作業中", job: `ノートパソコンで作業中：${plan.task?.title ?? "担当タスク"}` };
   };
 

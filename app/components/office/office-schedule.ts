@@ -1,4 +1,4 @@
-import { STAFF, openTasksByStaff, type OfficeTask } from "./staff";
+import { STAFF, onRequest, openTasksByStaff, type OfficeTask } from "./staff";
 
 // One clock and one timetable for the whole office. The map and every room screen read the same schedule, so a cat
 // is never in a meeting on one screen and at its desk on another, and the visitor is at the same step everywhere.
@@ -25,10 +25,10 @@ export function meetingWindow(t: number) {
 }
 
 // Who is in the meeting right now, in seat order. A meeting needs at least two cats with open tasks; who attends
-// rotates each round.
+// rotates each round. Cats busy with a request stay at their desks.
 export function meetingMembers(tasks: OfficeTask[], t: number): string[] {
   if (!meetingWindow(t).open) return [];
-  const open = openTasksByStaff(tasks), working = STAFF.map(s => s.id).filter(id => open[id]);
+  const open = openTasksByStaff(tasks), busy = onRequest(tasks), working = STAFF.map(s => s.id).filter(id => open[id] && !busy.has(id));
   if (working.length < 2) return [];
   const round = Math.floor(t / MEETING.every) % working.length;
   return [...working.slice(round), ...working.slice(0, round)].slice(0, MEETING.seats);
@@ -37,7 +37,7 @@ export function meetingMembers(tasks: OfficeTask[], t: number): string[] {
 export function dutiesAt(tasks: OfficeTask[], t: number): Record<string, Duty> {
   const open = openTasksByStaff(tasks), members = meetingMembers(tasks, t);
   const duties: Record<string, Duty> = Object.fromEntries(STAFF.map(({ id }) => [id, members.includes(id) ? "meeting" : open[id] ? "work" : "rest"]));
-  const atDesks = STAFF.map(s => s.id).filter(id => duties[id] === "work");
+  const busy = onRequest(tasks), atDesks = STAFF.map(s => s.id).filter(id => duties[id] === "work" && !busy.has(id));
   if (atDesks.length && t % COFFEE.every >= COFFEE.every - COFFEE.length) duties[atDesks[Math.floor(t / COFFEE.every) % atDesks.length]] = "coffee";
   return duties;
 }
