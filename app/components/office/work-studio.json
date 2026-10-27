@@ -11,11 +11,11 @@
     { "id": "plant-corner", "src": "studio/furniture/plant.png", "x": -6, "y": 112, "w": 40, "h": 64, "base": 172 }
   ],
   "staff": [
-    { "id": "kohaku", "name": "こはく", "coat": "サビ猫", "role": "プランナー" },
-    { "id": "mitsumame", "name": "みつまめ", "coat": "三毛猫", "role": "デザイナー" },
-    { "id": "mugi", "name": "むぎ", "coat": "キジトラ", "role": "マーケター" },
-    { "id": "kurogoma", "name": "くろごま", "coat": "黒猫", "role": "エンジニア" },
-    { "id": "omochi", "name": "おもち", "coat": "白猫", "role": "品質管理" }
+    { "id": "kohaku", "name": "こはく", "coat": "サビ猫", "role": "営業企画" },
+    { "id": "mitsumame", "name": "みつまめ", "coat": "三毛猫", "role": "制作・デザイン" },
+    { "id": "mugi", "name": "むぎ", "coat": "キジトラ", "role": "メディア・PR" },
+    { "id": "kurogoma", "name": "くろごま", "coat": "黒猫", "role": "リサーチ" },
+    { "id": "omochi", "name": "おもち", "coat": "白猫", "role": "事務サポート" }
   ],
   "desks": [
     { "staff": "kohaku", "chair": { "x": 16, "y": 68 }, "labels": { "広告事業部": "営業企画", "EC事業部": "商品企画" } },

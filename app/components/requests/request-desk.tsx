@@ -4,6 +4,7 @@ import { useState } from "react";
 import { deskLabel } from "../office/staff";
 import { plainText } from "./deliverables";
 import { KIND_LABEL, dueRemaining, progressOf, staffOf, statusLabel, type Department, type WorkRequest } from "./requests";
+import WorkflowTracker from "./workflow-tracker";
 import s from "./requests.module.css";
 
 type Actions = { onStart: (id: number) => void; onApprove: (id: number) => void; onRevise: (id: number, note: string) => void; onHurry: (id: number) => void; onShowDepartment: (department: Department) => void };
@@ -23,7 +24,7 @@ export function CatFace({ id }: { id: string }) {
   return <span className={s.face} style={{ backgroundImage: `url(/office/cats/${id}/stand.png)` }} aria-hidden="true"/>;
 }
 
-// Requests to ぽんず across both departments (newest first), and the selected one in detail.
+// Requests for the selected department (newest first), and the selected one in detail.
 export default function RequestDesk({ requests, now, department, selected, onSelect, ...actions }: Props) {
   const list = [...requests].reverse(), current = requests.find(r => r.id === selected) ?? list[0];
   const waiting = requests.filter(r => r.status === "review").length;
@@ -83,24 +84,26 @@ function Detail({ r, now, department, onApprove, onRevise, onHurry, onStart, onS
       <div><dt>期限</dt><dd className={r.urgent && r.status !== "completed" ? s.urgent : ""}>{r.due.label}<small>{r.status === "completed" ? "完了" : dueRemaining(r.due)}{r.due.said ? "" : "（標準の期限）"}</small></dd></div>
       <div><dt>状態</dt><dd><span className={`${s.chip} ${TONE[r.status]}`}>{statusLabel(r, now)}</span></dd></div>
     </dl>
+    {r.details && <section className={s.progress}><h4>具体的な作業内容</h4><p className={s.quote} style={{ whiteSpace: "pre-wrap" }}>{r.details}</p></section>}
     <p className={s.reason}><b>ぽんずの振り分け</b>{r.reason}</p>
+    <WorkflowTracker request={r}/>
     {r.external && <p className={s.warn}>送信・投稿のご依頼でしたが、ぽんずたちは下書きまでを用意します。実際の送信・投稿は、内容をご確認のうえ社長ご自身でお願いします。</p>}
 
     <ol className={s.steps} aria-label="進行状況">
       {STEPS.map((label, i) => <li key={label} className={i < step ? s.past : i === step ? s.now : ""} aria-current={i === step ? "step" : undefined}>{label}</li>)}
     </ol>
 
-    {r.status === "pending" && <button type="button" className={s.primary} onClick={() => onStart(r.id)}>作業を開始する</button>}
+    {r.status === "pending" && <button type="button" className={s.primary} onClick={() => onStart(r.id)}>ぽんずに作業開始をお願いする</button>}
 
     {r.status === "working" && <div className={s.progress}>
       <div className={s.progressRow}><span>{p.step}…</span><b>{Math.round(p.ratio * 100)}%</b></div>
       <span className={s.bar} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(p.ratio * 100)} aria-label="作業の進み具合"><i style={{ width: `${p.ratio * 100}%` }}/></span>
-      <div className={s.progressRow}><small>{cat.name}がワークスペースのデスクで作業中です（あと約{p.left}秒・デモ用の短い作業時間）</small><button type="button" className={s.ghost} onClick={() => onHurry(r.id)}>すぐ仕上げる（デモ）</button></div>
+      <div className={s.progressRow}><small>{r.workflow?.phase === "president_review" ? "しらす社長が品質レビュー中です" : "ぽんずが割り振った担当チームが作業中です"}（あと約{p.left}秒・デモ用の短い時間）</small><button type="button" className={s.ghost} onClick={() => onHurry(r.id)}>今の段階を進める（デモ）</button></div>
     </div>}
 
     {shown && <section className={s.paper} aria-label="成果物">
       <div className={s.paperHead}>
-        <span>成果物 · {cat.name}より提出</span>
+        <span>成果物 · {cat.name}が作成／{r.status === "working" ? "社内チェック中" : "ぽんず経由で報告"}</span>
         {latest > 1 && <div className={s.versions} role="group" aria-label="版の切り替え">{r.versions.map(v => <button key={v.version} type="button" aria-pressed={v.version === shown.version} onClick={() => setVersion(v.version)}>{v.version === 1 ? "初版" : `v${v.version}`}</button>)}</div>}
       </div>
       <h4>{shown.title}</h4>
@@ -114,16 +117,16 @@ function Detail({ r, now, department, onApprove, onRevise, onHurry, onStart, onS
     </section>}
 
     {r.status === "review" && <div className={s.actions}>
-      <button type="button" className={s.primary} disabled={shown?.version !== latest} onClick={() => onApprove(r.id)}>最新版を承認して完了する</button>
+      <button type="button" className={s.primary} disabled={shown?.version !== latest} onClick={() => onApprove(r.id)}>ユーザーが最新版を最終承認する</button>
       <form onSubmit={submitRevision}>
-        <label htmlFor={`revise-${r.id}`}>修正を依頼する</label>
+        <label htmlFor={`revise-${r.id}`}>ぽんずに修正を依頼する</label>
         <textarea id={`revise-${r.id}`} value={note} onChange={e => setNote(e.target.value)} maxLength={200} placeholder="例：もっと短く、親しみやすい感じで／20代向けに／数字の根拠も入れて"/>
-        <button type="submit" className={s.secondary} disabled={!note.trim()}>{cat.name}に修正をお願いする</button>
+        <button type="submit" className={s.secondary} disabled={!note.trim()}>ぽんずに修正をお願いする</button>
       </form>
       <small>承認しても、メール送信やSNS投稿などは行われません。</small>
     </div>}
     {r.status === "completed" && <p className={s.done}>✓ 承認済みです。{cat.name}はひと仕事終えて休憩に入りました。成果物はコピーしてお使いください（外部への送信・投稿は行っていません）。</p>}
 
-    {r.revisions.length > 0 && <details className={s.history}><summary>修正の履歴（{r.revisions.length}回）</summary><ol>{r.revisions.map((n, i) => <li key={i}>v{i + 2}への修正メモ：「{n}」</li>)}</ol></details>}
+    {r.revisions.length > 0 && <details className={s.history}><summary>修正の履歴（{r.revisions.length}回）</summary><ol>{r.revisions.map((n, i) => <li key={i}>ユーザーからぽんずへの修正メモ {i + 1}：「{n}」</li>)}</ol></details>}
   </article>;
 }

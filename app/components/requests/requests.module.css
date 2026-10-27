@@ -113,3 +113,30 @@
 }
 
 .pending { background: #eeeee7; color: #62675c; }
+
+/* Intake controls only; office artwork and animation styles stay independent. */
+.intake { min-width: 0; }
+.preview { margin: 0 20px 20px; padding: 14px; border: 1px solid var(--line); background: #fafbf6; min-width: 0; }
+.preview h3 { font-size: 14px; margin: 0 0 10px; }
+.preview h3 small { font-size: 10px; color: #b96137; }
+.preview label { margin: 14px 0 6px; font-weight: bold; }
+.preview input, .preview select, .preview textarea { width: 100%; min-width: 0; max-width: 100%; min-height: 44px; padding: 10px; border: 1px solid #d8dccd; background: white; color: var(--ink); border-radius: 0; font: inherit; font-size: 12px; }
+.preview > small { display: block; font-size: 10px; line-height: 1.7; color: var(--muted); margin-top: 5px; }
+.questions { padding: 10px; margin: 12px 0; background: #eef2e6; font-size: 12px; line-height: 1.8; overflow-wrap: anywhere; }
+.questions ul { padding-left: 18px; }
+.questions a { color: inherit; }
+.previewActions { display: grid; gap: 8px; margin-top: 14px; }
+.previewActions button { white-space: normal; }
+@media (max-width: 760px) {
+  .preview input, .preview select, .preview textarea { font-size: 16px; }
+}
+
+.assignment { margin-top: 12px; font-size: 11px; line-height: 1.8; overflow-wrap: anywhere; }
+.assignment h4 { margin: 0; }
+.assignment ul, .workflow ul, .workflow ol { padding-left: 20px; }
+.workflow { margin-top: 16px; padding: 14px; border: 1px solid var(--line); background: #f4f5ee; font-size: 12px; line-height: 1.8; overflow-wrap: anywhere; }
+.workflow h4 { font-size: 13px; margin: 0 0 8px; }
+.workflow section { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.workflow small { color: var(--muted); }
+.flowStages { display: flex; flex-wrap: wrap; gap: 6px 24px; }
+.flowStages li[aria-current="step"] { color: #b96137; font-weight: bold; }

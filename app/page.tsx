@@ -3,16 +3,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import OfficeMap from "./components/office/office-map";
 import { OFFICE_AREAS } from "./components/office/office-areas";
-import { deskLabel } from "./components/office/staff";
 import RequestDesk from "./components/requests/request-desk";
-import { KIND_LABEL, approve, createRequest, dueShort, handIn, hurry, isFinished, progressOf, revise, staffOf, statusLabel, STATUS_LABEL, startRequest, type Status, type Department, type WorkRequest } from "./components/requests/requests";
+import { KIND_LABEL, approve, dueShort, advanceRequest, phaseLabel, hurry, isFinished, progressOf, revise, staffOf, statusLabel, STATUS_LABEL, startRequest, type Status, type Department, type WorkRequest } from "./components/requests/requests";
 import { loadWorkspace, STORAGE_KEY } from "./components/requests/storage";
+import RequestIntake from "./components/requests/request-intake";
+import { requestOfficeTasks } from "./components/requests/workflow-office";
+import { emptyIntake, confirmDraft, draftQuestions, isRequestDraft } from "./components/requests/intake";
 import rq from "./components/requests/requests.module.css";
 
 type Task = { id: number; title: string; project: string; owner: string; due: string; status: Status; priority: boolean; job?: WorkRequest };
 // A line from ぽんず; `request` links it to that request, `department` offers to switch to where the work went.
-type Message = { text: string; request?: number; department?: Department };
-type Notice = { id: number; title: string; body: string; time: string };
+type Message = { text: string; scope?: Department; request?: number; department?: Department };
+type Notice = { department: Department; id: number; title: string; body: string; time: string };
 const initialTasks: Record<Department, Task[]> = {
   広告事業部: [
     { id: 1, title: "秋のキャンペーン企画をまとめる", project: "ねこ日和 / SNS広告", owner: "ぽんず", due: "今日", status: "pending", priority: true },
@@ -28,7 +30,6 @@ const initialTasks: Record<Department, Task[]> = {
   ],
 };
 
-const EXAMPLES = ["ねこ日和の秋キャンペーンの企画を明後日までにお願い", "新作ねこグッズの商品ページの文章を作って", "先週の広告の結果をレポートにまとめて", "お客様へのお礼メールの下書きを今日中に", "週末セールのSNS投稿文を考えて"];
 const clock = (t: number) => new Date(t).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
 
 function Cat({ orange = false, small = false }: { orange?: boolean; small?: boolean }) {
@@ -46,7 +47,7 @@ function Cat({ orange = false, small = false }: { orange?: boolean; small?: bool
 export default function Home() {
   const [department, setDepartment] = useState<Department>("広告事業部");
   const [tasks, setTasks] = useState(initialTasks);
-  const [instruction, setInstruction] = useState("");
+  const [intake, setIntake] = useState(emptyIntake);
   const [messages, setMessages] = useState<Message[]>([{ text: "おはようございます、社長！ 今日もいっしょに、いい仕事をしましょう。何かあれば、ぽんずにおまかせください。" }]);
   const [read, setRead] = useState(false);
   const [officeView, setOfficeView] = useState("suite");
@@ -62,6 +63,7 @@ export default function Home() {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- Restore browser-only data after hydration.
       setTasks(saved.tasks);
       setRequests(saved.requests);
+      setIntake(saved.intake);
       setNow(Date.now());
     } catch {
       setStorageError("保存データを読み込めませんでした。元の保存データは保持しています。");
@@ -72,20 +74,20 @@ export default function Home() {
   useEffect(() => {
     if (!storageReady) return;
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 2, tasks, requests }));
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 4, tasks, requests, intake }));
       // eslint-disable-next-line react-hooks/set-state-in-effect -- Surface the result of writing to browser storage.
       setStorageError("");
     } catch {
       setStorageError("ブラウザに保存できません。現在の変更は再読み込みすると失われる可能性があります。");
     }
-  }, [storageReady, tasks, requests]);
+  }, [storageReady, tasks, requests, intake]);
   // Requests show up as tasks of their department; the office sees a requested task as open only while its cat works on it.
   const requestTasks: Task[] = requests.filter(r => r.department === department).map(r => ({ id: r.id, title: r.subject, project: `ぽんず経由の依頼 / ${KIND_LABEL[r.kind]}`, owner: staffOf(r.staff).name, due: dueShort(r.due), status: r.status, priority: r.urgent, job: r }));
   const current = [...tasks[department], ...requestTasks];
-  const officeTasks = useMemo(() => [...tasks[department].map(task => ({ ...task, done: task.status !== "working" })), ...requests.filter(r => r.department === department).map(r => ({ title: r.subject, owner: staffOf(r.staff).name, done: r.status !== "working", staff: r.staff, request: true }))], [tasks, requests, department]);
+  const officeTasks = useMemo(() => [...tasks[department].map(task => ({ ...task, done: task.status !== "working" })), ...requests.filter(r => r.department === department).flatMap(requestOfficeTasks)], [tasks, requests, department]);
   const OfficeView = OFFICE_AREAS.find(area => area.id === officeView)?.Component;
   const completed = current.filter(task => task.status === "completed").length;
-  const waiting = requests.filter(r => r.status === "review").length;
+  const waiting = requests.filter(r => r.department === department && r.status === "review").length;
   const say = (message: Message) => setMessages(previous => [...previous, message]);
 
   // While any cat is working, a clock moves the progress bars; finished work is handed in for review.
@@ -98,28 +100,35 @@ export default function Home() {
       const t = Date.now(), finished = latest.current.filter(r => isFinished(r, t));
       setNow(t);
       if (!finished.length) return;
-      const ids = finished.map(r => r.id);
-      setRequests(previous => previous.map(r => (ids.includes(r.id) && r.status === "working" ? handIn(r) : r)));
-      for (const r of finished) {
-        const cat = staffOf(r.staff).name, kind = KIND_LABEL[r.kind], again = r.revisions.length > 0;
-        say({ text: `${cat}が「${r.subject}」の${kind}${again ? "（修正版）" : ""}を提出しました。内容をご確認ください、にゃ！`, request: r.id });
-        setNotices(previous => [{ id: t + r.id, title: `${cat}が${kind}${again ? "の修正版" : ""}を提出しました`, body: `「${r.subject}」${again ? "の修正版" : ""} · ${r.department}`, time: clock(t) }, ...previous]);
+      const transitions = finished.map(r => ({ before: r, after: advanceRequest(r, t) }));
+      setRequests(previous => previous.map(r => {
+        const transition = transitions.find(item => item.before.id === r.id);
+        return transition && r === transition.before ? transition.after : r;
+      }));
+      for (const { after: r } of transitions) {
+        const phase = r.workflow?.phase;
+        const text = phase === "president_review" ? `担当チームが「${r.subject}」を提出しました。しらす社長が品質を確認しています。` : phase === "internal_revision" ? `しらす社長から「${r.subject}」に具体的な修正指示が出ました。ぽんずが担当チームへ伝え、社内で修正しています。` : `「${r.subject}」の成果物をご報告します、にゃ！ ${r.workflow?.reviews.at(-1)?.verdict === "changes" ? "社長の指摘が残っています。" : r.workflow ? "しらす社長のチェックを通過しました。" : ""}ユーザーご自身で内容を確認し、修正依頼または最終承認をお願いします。`;
+        say({ scope: r.department, text, request: r.id });
+        setNotices(previous => [{ department: r.department, id: t + r.id, title: phaseLabel(r), body: `「${r.subject}」 · ${r.department}`, time: clock(t) }, ...previous]);
       }
       setRead(false);
     }, 500);
     return () => window.clearInterval(timer);
   }, [busy]);
 
-  function submitInstruction(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const text = instruction.trim();
-    if (!text || !storageReady) return;
-    const t = Math.max(Date.now(), ...requests.map(r => r.id + 1)), r = createRequest(text, department, t), cat = staffOf(r.staff);
-    setRequests(previous => [...previous, r]);
+  function registerRequest() {
+    if (!storageReady) return;
+    const draft = intake.drafts[department];
+    if (!isRequestDraft(draft) || draftQuestions(draft).length || intake.inputs[department].trim() !== draft.text) return;
+    // Only an explicit UI approval constructs a task; proposals cannot supply approval or workflow state.
+    const r = confirmDraft(draft, Math.max(Date.now(), ...requests.map(item => item.id + 1)));
+    const request = startRequest(r, Date.now());
+    setRequests(previous => [...previous, request]);
     setSelectedRequest(r.id);
-    setNow(t);
-    say({ text: `「${r.subject}」、承りました、にゃ！ ${r.department}の${KIND_LABEL[r.kind]}として、${deskLabel(r.staff, r.department)}担当の${cat.name}に割り当てました。「作業を開始する」で開始できます。期限は${r.due.label}です。${r.external ? "送信や投稿は自動では行わず、下書きまでを用意しますね。" : ""}`, request: r.id, department: r.department === department ? undefined : r.department });
-    setInstruction("");
+    setNow(Date.now());
+    setIntake(previous => ({ inputs: { ...previous.inputs, [department]: "" }, drafts: { ...previous.drafts, [department]: null } }));
+    setDepartment(r.department);
+    say({ scope: r.department, text: `「${r.subject}」を${r.department}のタスクとして登録しました、にゃ！ ${staffOf(r.staff).name}が担当します。ぽんずが担当チームへ伝え、作業を開始しました。提出後はしらす社長が品質をレビューします。期限は${r.due.label}です。`, request: r.id });
   }
   const update = (id: number, change: (r: WorkRequest) => WorkRequest) => setRequests(previous => previous.map(r => (r.id === id ? change(r) : r)));
   function beginRequest(id: number) {
@@ -131,14 +140,14 @@ export default function Home() {
     const r = requests.find(item => item.id === id);
     if (!r || r.status !== "review" || !r.versions.length) return;
     update(id, approve);
-    say({ text: `承認ありがとうございます！ ${staffOf(r.staff).name}に伝えておきます。外部への送信や投稿はしていませんので、必要に応じて社長からお使いください。`, request: id });
+    say({ scope: r.department, text: `承認ありがとうございます！ ${staffOf(r.staff).name}に伝えておきます。外部への送信や投稿はしていませんので、必要に応じて社長からお使いください。`, request: id });
   }
   function reviseRequest(id: number, note: string) {
     const r = requests.find(item => item.id === id), t = Date.now();
     if (!r || r.status !== "review" || !note.trim()) return;
     update(id, item => revise(item, note, t));
     setNow(t);
-    say({ text: `修正メモを${staffOf(r.staff).name}に渡しました。v${r.versions.length + 1}ができるまで、少しお待ちください。`, request: id });
+    say({ scope: r.department, text: `ぽんずが修正メモを担当チームに渡しました。v${r.versions.length + 1}ができるまで、少しお待ちください。`, request: id });
   }
   function hurryRequest(id: number) {
     const t = Date.now();
@@ -149,7 +158,7 @@ export default function Home() {
     setDepartment(name);
     document.getElementById("office")?.scrollIntoView({ behavior: "smooth" });
   }
-  const lastMessage = messages[messages.length - 1];
+  const lastMessage = messages.filter(message => !message.scope || message.scope === department).at(-1)!;
   return <div className="app-shell">
     <aside className="sidebar">
       <a className="brand" href="#"><span className="brand-cat"><Cat small/></span><span>猫脳社<small>NEKONOSHA</small></span></a>
@@ -166,13 +175,13 @@ export default function Home() {
         <section className="stats" aria-label="進捗状況"><article><span>進行中のタスク <i>↗</i></span><strong>{current.length - completed}<small>件</small></strong><p>ひとつずつ、着実に。</p></article><article><span>タスク完了率 <i>◴</i></span><strong>{Math.round(completed / current.length * 100)}<small>%</small></strong><div className="progress-track"><div style={{ width: `${completed / current.length * 100}%` }}/></div></article><article><span>出勤中の猫社員 <i>♧</i></span><strong>07<small>匹</small></strong><p><b className="green-dot"/> 全員、元気にはたらいています</p></article></section>
         <div className="dashboard-grid"><div className="left-column">
           <section className="panel office-panel" id="office"><div className="panel-heading"><h2><span>01 /</span> 猫脳社オフィス</h2><span className="live-label"><i/> LIVE <small>サンプル</small></span></div><div className="office-view-switch" role="group" aria-label="オフィスの表示切り替え">{OFFICE_AREAS.map(area => <button key={area.id} aria-pressed={officeView === area.id} onClick={() => setOfficeView(area.id)}>{area.label}（新デザイン試作）</button>)}<button aria-pressed={officeView === "map"} onClick={() => setOfficeView("map")}>全体マップ</button></div>{OfficeView ? <OfficeView department={department} tasks={officeTasks}/> : <OfficeMap department={department} tasks={officeTasks} onOpenRoom={setOfficeView}/>}<div className="office-footer"><span><i/> {department}のようす</span><span>ときどき休憩。それも仕事。</span></div></section>
-          <section className="panel tasks-panel" id="tasks"><div className="panel-heading"><h2><span>02 /</span> 今日のタスク</h2><span className="count-label">{completed} / {current.length} 完了</span></div><div className="task-list">{current.map(task => <div className={`task-row ${(task.status === "completed") ? "done" : ""}`} key={task.id}>{task.job ? <span className={`checkbox ${rq.taskMark}`} aria-hidden="true">{(task.status === "completed") ? "✓" : task.job.status === "review" ? "!" : "…"}</span> : <select aria-label={`${task.title}の状態`} disabled={!storageReady} value={task.status} onChange={e => { const status = e.target.value as Status; setTasks(previous => ({ ...previous, [department]: previous[department].map(item => item.id === task.id ? { ...item, status } : item) })); }}>{Object.entries(STATUS_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>}<div className="task-copy">{task.job ? <a className={rq.taskLink} href="#requests" onClick={() => setSelectedRequest(task.id)}><strong>{task.title}</strong></a> : <strong>{task.title}</strong>}<small>{task.project}{task.job && <> · <b className={rq.taskStatus}>{statusLabel(task.job, now)}{task.job.status === "working" && !progressOf(task.job, now).routing ? ` ${Math.round(progressOf(task.job, now).ratio * 100)}%` : ""}</b></>}</small></div><span className="task-owner">{task.owner}</span><span className={`due ${task.priority && !(task.status === "completed") ? "urgent" : ""}`}>{(task.status === "completed") ? "完了" : task.due}</span></div>)}</div><div className="task-footer">小さな一歩が、大きな仕事になる。<span>KEEP IT GOING ↗</span></div></section>
+          <section className="panel tasks-panel" id="tasks"><div className="panel-heading"><h2><span>02 /</span> 今日のタスク</h2><span className="count-label">{completed} / {current.length} 完了</span></div><div className="task-list">{current.map(task => <div className={`task-row ${(task.status === "completed") ? "done" : ""}`} key={task.id}>{task.job ? <span className={`checkbox ${rq.taskMark}`} aria-hidden="true">{(task.status === "completed") ? "✓" : task.job.status === "review" ? "!" : "…"}</span> : <select aria-label={`${task.title}の状態`} disabled={!storageReady} value={task.status} onChange={e => { const status = e.target.value as Status; setTasks(previous => ({ ...previous, [department]: previous[department].map(item => item.id === task.id ? { ...item, status } : item) })); }}>{Object.entries(STATUS_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>}<div className="task-copy">{task.job ? <a className={rq.taskLink} href="#requests" onClick={() => setSelectedRequest(task.id)}><strong>{task.title}</strong></a> : <strong>{task.title}</strong>}<small>{task.project}{task.job && <> · <b className={rq.taskStatus}>{statusLabel(task.job, now)}{task.job.workflow && <> · {phaseLabel(task.job)}</>}{task.job.status === "working" && !progressOf(task.job, now).routing ? ` ${Math.round(progressOf(task.job, now).ratio * 100)}%` : ""}</b></>}</small></div><span className="task-owner">{task.owner}</span><span className={`due ${task.priority && !(task.status === "completed") ? "urgent" : ""}`}>{(task.status === "completed") ? "完了" : task.due}</span></div>)}</div><div className="task-footer">小さな一歩が、大きな仕事になる。<span>KEEP IT GOING ↗</span></div></section>
         </div><div className="right-column">
-          <section className="panel secretary-panel"><div className="panel-heading"><h2><span>03 /</span> 秘書のデスク</h2><span>✳</span></div><div className="secretary-profile"><div className="avatar"><Cat orange/></div><div><h3>ぽんず<small>秘書 / ASSISTANT</small></h3><span><i/> お手伝いできます</span></div></div><div className="message" aria-live="polite"><span>PONZU SAYS</span><p>{lastMessage.text}</p>{(lastMessage.request || lastMessage.department) && <div className={rq.messageLinks}>{lastMessage.request && <a href="#requests" onClick={() => setSelectedRequest(lastMessage.request ?? null)}>依頼の状況を見る ↓</a>}{lastMessage.department && <button type="button" onClick={() => showDepartment(lastMessage.department as Department)}>{lastMessage.department}を表示</button>}</div>}</div><form onSubmit={submitInstruction}><label htmlFor="instruction">ぽんずへの指示</label><textarea id="instruction" placeholder="例：新作グッズの商品ページの文章を明日までに作って" value={instruction} onChange={e => setInstruction(e.target.value)} maxLength={200}/><div className={rq.examples} aria-label="指示の例">{EXAMPLES.map(example => <button key={example} type="button" onClick={() => setInstruction(example)}>{example}</button>)}</div><button type="submit" disabled={!storageReady || !instruction.trim()}>ぽんずにお願いする <span>↗</span></button><small>デモ機能：内容から事業部と担当の猫社員を決めます。外部AIやメール送信・SNS投稿は使いません</small></form></section>
-          <section className="panel notifications-panel" id="notifications"><div className="panel-heading"><h2><span>04 /</span> お知らせ</h2><button onClick={() => setRead(true)} disabled={read}>{read ? "既読" : "すべて既読"}</button></div>{notices.map(notice => <div className={`notice ${read ? "read" : ""}`} key={notice.id}><span className="notice-symbol orange">✎</span><div><strong>{notice.title}</strong><p>{notice.body}</p><small>{notice.time} · <a className={rq.taskLink} href="#requests">確認する</a></small></div></div>)}<div className={`notice ${read ? "read" : ""}`}><span className="notice-symbol">✓</span><div><strong>{department === "広告事業部" ? "リサーチが完了しました" : "売上レポートができました"}</strong><p>ぽんずがタスクを完了しました。</p><small>10分前 · サンプル</small></div></div><div className={`notice ${read ? "read" : ""}`}><span className="notice-symbol orange">☀</span><div><strong>本日も全員、出勤しました</strong><p>猫脳社の一日がはじまります。</p><small>1時間前 · サンプル</small></div></div></section>
+          <section className="panel secretary-panel"><div className="panel-heading"><h2><span>03 /</span> 秘書のデスク</h2><span>✳</span></div><div className="secretary-profile"><div className="avatar"><Cat orange/></div><div><h3>ぽんず<small>秘書 / ASSISTANT</small></h3><span><i/> お手伝いできます</span></div></div><div className="message" aria-live="polite"><span>PONZU SAYS</span><p>{lastMessage.text}</p>{(lastMessage.request || lastMessage.department) && <div className={rq.messageLinks}>{lastMessage.request && <a href="#requests" onClick={() => setSelectedRequest(lastMessage.request ?? null)}>依頼の状況を見る ↓</a>}{lastMessage.department && <button type="button" onClick={() => showDepartment(lastMessage.department as Department)}>{lastMessage.department}を表示</button>}</div>}</div><RequestIntake department={department} ready={storageReady} input={intake.inputs[department]} draft={intake.drafts[department]} onInput={text => setIntake(previous => ({ ...previous, inputs: { ...previous.inputs, [department]: text } }))} onDraft={draft => setIntake(previous => ({ ...previous, drafts: { ...previous.drafts, [department]: draft } }))} onConfirm={registerRequest}/></section>
+          <section className="panel notifications-panel" id="notifications"><div className="panel-heading"><h2><span>04 /</span> お知らせ</h2><button onClick={() => setRead(true)} disabled={read}>{read ? "既読" : "すべて既読"}</button></div>{notices.filter(notice => notice.department === department).map(notice => <div className={`notice ${read ? "read" : ""}`} key={notice.id}><span className="notice-symbol orange">✎</span><div><strong>{notice.title}</strong><p>{notice.body}</p><small>{notice.time} · <a className={rq.taskLink} href="#requests">確認する</a></small></div></div>)}<div className={`notice ${read ? "read" : ""}`}><span className="notice-symbol">✓</span><div><strong>{department === "広告事業部" ? "リサーチが完了しました" : "売上レポートができました"}</strong><p>ぽんずがタスクを完了しました。</p><small>10分前 · サンプル</small></div></div><div className={`notice ${read ? "read" : ""}`}><span className="notice-symbol orange">☀</span><div><strong>本日も全員、出勤しました</strong><p>猫脳社の一日がはじまります。</p><small>1時間前 · サンプル</small></div></div></section>
           <div className="team-note" id="team"><div><Cat small/><Cat small orange/></div><p>いい仕事には、<br/>いい昼寝が必要だ。</p><span>THE NEKONOSHA WAY.</span></div>
         </div></div>
-        <div className={rq.deskWrap}><RequestDesk requests={requests} now={now} department={department} selected={selectedRequest} onSelect={setSelectedRequest} onStart={beginRequest} onApprove={approveRequest} onRevise={reviseRequest} onHurry={hurryRequest} onShowDepartment={showDepartment}/></div>
+        <div className={rq.deskWrap}><RequestDesk requests={requests.filter(r => r.department === department)} now={now} department={department} selected={selectedRequest} onSelect={setSelectedRequest} onStart={beginRequest} onApprove={approveRequest} onRevise={reviseRequest} onHurry={hurryRequest} onShowDepartment={showDepartment}/></div>
         <footer className="page-footer"><span>© 2026 NEKONOSHA</span><span>MADE WITH PAWS & POSSIBILITIES.</span><span>v0.1.0 / サンプルデータ</span></footer>
       </div>
     </main>

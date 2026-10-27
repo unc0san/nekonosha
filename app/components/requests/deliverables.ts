@@ -1,3 +1,5 @@
+import { STAFF } from "../office/staff";
+import { qualitySection } from "./quality";
 import type { WorkRequest } from "./requests";
 
 // Sample deliverables, filled in from fixed templates on this page (no AI). Every version is a draft for the president
@@ -126,7 +128,9 @@ const CAN: Record<"casual" | "numbers" | "more", WorkRequest["kind"][]> = {
 };
 
 export function makeDeliverable(r: WorkRequest, version: number, note?: string): Deliverable {
-  const ask = readNote(note), made = body(r, version, ask), sections = [...made.sections];
+  const ask = readNote(note), made = body(r, version, ask), sections = [...(r.details ? [{ heading: "依頼された作業内容（受付メモ）", lines: [r.details] }] : []), ...made.sections];
+  if (r.team && r.team.length > 1) sections.push({ heading: "ぽんずのチーム分担", lines: r.team.map(member => `${STAFF.find(cat => cat.id === member.staff)?.name ?? member.staff}：${member.responsibility}`) });
+  if (r.workflow && r.workflow.reviews.length > 0) sections.push(qualitySection(r));
   const done: string[] = [], skipped: string[] = [];
   if (ask.short) done.push("全体を短くまとめました。");
   if (ask.polite) done.push("ていねいな言い回しでそろえています。");

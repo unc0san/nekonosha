@@ -1,5 +1,7 @@
 import { STAFF, deskLabel } from "../office/staff";
 import { makeDeliverable, type Deliverable } from "./deliverables";
+import { reviewQuality, type QualityReview } from "./quality";
+import type { TeamMember } from "./assignment";
 
 // Work requests to ぽんず, handled entirely on this page: ぽんず reads the request, picks the department and the cat,
 // the cat works for a short demo time and hands in a sample deliverable, and the president approves it or asks for
@@ -15,10 +17,13 @@ export const KIND_LABEL: Record<Kind, string> = { plan: "企画案", copy: "文�
 export type Status = "pending" | "working" | "review" | "completed";
 export const STATUS_LABEL: Record<Status, string> = { pending: "未着手", working: "作業中", review: "確認待ち", completed: "完了" };
 export type Due = { date: string; label: string; said: boolean };
+export type Phase = "assigned" | "staff_work" | "president_review" | "internal_revision" | "user_review" | "completed";
+export type Workflow = { phase: Phase; reviews: QualityReview[]; autoRevisions: number };
+export const PHASE_LABEL: Record<Phase, string> = { assigned: "ぽんず受付・担当選定済み", staff_work: "担当猫が作業中", president_review: "しらす社長がレビュー中", internal_revision: "社長の指摘を社内修正中", user_review: "ぽんず報告・ユーザー確認待ち", completed: "ユーザー最終承認・完了" };
 export type WorkRequest = {
   id: number; text: string; subject: string; department: Department; kind: Kind; staff: string; reason: string;
   due: Due; urgent: boolean; external: boolean; status: Status; startedAt: number; duration: number;
-  versions: Deliverable[]; revisions: string[];
+  versions: Deliverable[]; revisions: string[]; details?: string; team?: TeamMember[]; workflow?: Workflow;
 };
 
 // The dashboard's demo date (shown in its header); deadlines count from it.
@@ -26,7 +31,7 @@ export const TODAY = new Date(2026, 9, 25);
 const WEEKDAYS = "日月火水木金土";
 
 // ---------- Reading a request ----------
-const DEPARTMENT_WORDS: Record<Department, string[]> = {
+export const DEPARTMENT_WORDS: Record<Department, string[]> = {
   広告事業部: ["広告", "バナー", "キャンペーン", "PR", "プレス", "媒体", "集客", "クライアント", "ねこ日和", "出稿", "認知", "ブランド", "CM", "LP", "動画", "インフルエンサー", "代理店", "コピー"],
   EC事業部: ["EC", "商品", "在庫", "ストア", "ショップ", "通販", "ねこ商店", "ギフト", "注文", "発送", "レビュー", "売上", "セール", "カート", "グッズ", "購入", "お客様", "顧客", "入荷", "価格"],
 };
@@ -39,10 +44,10 @@ const KIND_WORDS: [Kind, string[]][] = [
   ["copy", ["コピー", "文章", "文案", "説明文", "紹介文", "キャッチ", "告知", "原稿", "見出し", "ブログ", "記事", "キャプション", "LP"]],
 ];
 // Who takes each kind of work, by department (desk roles are in work-studio.json).
-const DESK: Record<Kind, string> = { plan: "kohaku", copy: "mitsumame", product: "mitsumame", sns: "mugi", report: "kurogoma", email: "omochi", memo: "omochi" };
+export const DESK: Record<Kind, string> = { plan: "kohaku", copy: "mitsumame", product: "mitsumame", sns: "mugi", report: "kurogoma", email: "omochi", memo: "omochi" };
 // Asking to send, post or publish: ぽんず only ever prepares a draft.
 const EXTERNAL = /送信|送って|送付|メールして|投稿して|ポストして|公開して|配信して|アップして|DMして|出稿して|ツイートして/;
-const DURATION: Record<Kind, number> = { memo: 14000, copy: 18000, sns: 16000, email: 16000, product: 22000, report: 26000, plan: 28000 };
+export const DURATION: Record<Kind, number> = { memo: 14000, copy: 18000, sns: 16000, email: 16000, product: 22000, report: 26000, plan: 28000 };
 // ぽんず reads the request and hands it out before the cat starts.
 export const ROUTING_MS = 2500;
 const REWORK = 0.6;
@@ -141,25 +146,42 @@ const STEPS: Record<Kind, string[]> = {
 export function progressOf(r: WorkRequest, now: number) {
   if (r.status === "pending") return { routing: false, ratio: 0, step: "作業開始を待っています", left: 0 };
   if (r.status !== "working") return { routing: false, ratio: 1, step: "", left: 0 };
-  const elapsed = Math.max(0, now - r.startedAt), routing = r.revisions.length === 0 && elapsed < ROUTING_MS;
-  const start = r.revisions.length ? 0 : ROUTING_MS, ratio = routing ? 0 : Math.min(1, (elapsed - start) / (r.duration - start));
+  const elapsed = Math.max(0, now - r.startedAt);
+  if (r.workflow?.phase === "president_review") return { routing: false, ratio: Math.min(1, elapsed / r.duration), step: "しらす社長が完成条件・期限・サンプル表記を確認しています", left: Math.max(0, Math.ceil((r.duration - elapsed) / 1000)) };
+  const routing = r.workflow?.phase !== "internal_revision" && r.revisions.length === 0 && elapsed < ROUTING_MS;
+  const start = r.revisions.length || r.workflow?.phase === "internal_revision" ? 0 : ROUTING_MS, ratio = routing ? 0 : Math.min(1, (elapsed - start) / (r.duration - start));
   const steps = STEPS[r.kind];
-  const step = routing ? "ぽんずが内容を読んで、担当を決めています" : r.revisions.length && ratio < 0.25 ? "修正メモを読んでいます" : steps[Math.min(steps.length - 1, Math.floor(ratio * steps.length))];
+  const step = r.workflow?.phase === "internal_revision" ? "しらす社長の具体的な指摘を反映しています" : routing ? (r.workflow ? "ぽんずが承認された依頼を担当チームに伝えています" : "ぽんずが内容を読んで、担当を決めています") : r.revisions.length && ratio < 0.25 ? "修正メモを読んでいます" : steps[Math.min(steps.length - 1, Math.floor(ratio * steps.length))];
   return { routing, ratio, step, left: Math.max(0, Math.ceil((r.startedAt + r.duration - now) / 1000)) };
 }
 
 export const isFinished = (r: WorkRequest, now: number) => r.status === "working" && now >= r.startedAt + r.duration;
 
-// The cat hands in the next version (taking the latest change request into account).
-export const handIn = (r: WorkRequest): WorkRequest => ({ ...r, status: "review", versions: [...r.versions, makeDeliverable(r, r.versions.length + 1, r.revisions.at(-1))] });
-export const approve = (r: WorkRequest): WorkRequest => ({ ...r, status: "completed" });
-export const revise = (r: WorkRequest, note: string, now: number): WorkRequest => ({ ...r, status: "working", startedAt: now, duration: Math.round(DURATION[r.kind] * REWORK), revisions: [...r.revisions, note.trim()] });
-// Demo shortcut: finish now.
-export const hurry = (r: WorkRequest, now: number): WorkRequest => ({ ...r, startedAt: now - r.duration });
+// Old requests retain their existing direct-review flow; new requests use the president's review.
+export function handIn(r: WorkRequest, now = Date.now()): WorkRequest {
+  if (r.status !== "working" || r.workflow?.phase === "president_review") return r;
+  const versions = [...r.versions, makeDeliverable(r, r.versions.length + 1, r.revisions.at(-1))];
+  return r.workflow ? { ...r, versions, status: "working", startedAt: now, duration: 6500, workflow: { ...r.workflow, phase: "president_review" } } : { ...r, versions, status: "review" };
+}
+export function advanceRequest(r: WorkRequest, now: number): WorkRequest {
+  if (!isFinished(r, now)) return r;
+  if (r.workflow?.phase !== "president_review") return handIn(r, now);
+  const submitted = r.versions.at(-1);
+  if (!submitted) return r;
+  const review = reviewQuality(r, submitted, now);
+  const workflow = { ...r.workflow, reviews: [...r.workflow.reviews, review] };
+  // One automatic correction per user-review round; unresolved issues always return to the user.
+  if (review.verdict === "changes" && workflow.autoRevisions < 1) return { ...r, startedAt: now, duration: Math.round(DURATION[r.kind] * REWORK), workflow: { ...workflow, autoRevisions: workflow.autoRevisions + 1, phase: "internal_revision" } };
+  return { ...r, status: "review", workflow: { ...workflow, phase: "user_review" } };
+}
+export const approve = (r: WorkRequest): WorkRequest => r.status !== "review" || !r.versions.length ? r : ({ ...r, status: "completed", ...(r.workflow ? { workflow: { ...r.workflow, phase: "completed" as const } } : {}) });
+export const revise = (r: WorkRequest, note: string, now: number): WorkRequest => r.status !== "review" || !note.trim() ? r : ({ ...r, status: "working", startedAt: now, duration: Math.round(DURATION[r.kind] * REWORK), revisions: [...r.revisions, note.trim()], ...(r.workflow ? { workflow: { ...r.workflow, phase: "staff_work" as const, autoRevisions: 0 } } : {}) });
+export const hurry = (r: WorkRequest, now: number): WorkRequest => r.status === "working" ? { ...r, startedAt: now - r.duration } : r;
+export const phaseLabel = (r: WorkRequest) => r.workflow ? PHASE_LABEL[r.workflow.phase] : STATUS_LABEL[r.status];
 
 export function statusLabel(r: WorkRequest, _now: number) {
   void _now;
   return STATUS_LABEL[r.status];
 }
 
-export const startRequest = (r: WorkRequest, now: number): WorkRequest => r.status === "pending" ? { ...r, status: "working", startedAt: now } : r;
+export const startRequest = (r: WorkRequest, now: number): WorkRequest => r.status === "pending" ? { ...r, status: "working", startedAt: now, ...(r.workflow ? { workflow: { ...r.workflow, phase: "staff_work" } } : {}) } : r;
