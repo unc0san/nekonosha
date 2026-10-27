@@ -300,9 +300,11 @@ function sofa() {
     box(back, o, [0, 0, 0], [du, 24, 3], { top: solid(P.metal[1]), left: solid(P.metal[1]), right: solid(P.metal[0]), rim: false });
     box(back, o, [0, 0, 3], [du, 7, 28], { top: ramp(P.orange, 0.85), left: (u, z, x, y) => (seam(u) ? P.orange[1] : tone(P.orange, 0.66 - (28 - z) / 100, x, y)), right: ORANGE_DARK });
     box(back, o, [0, 7, 3], [du, 24, 12], { top: (u, v, x, y) => (seam(u) ? P.orange[1] : tone(P.orange, 0.8, x, y)), left: ramp(P.orange, 0.5), right: ORANGE_DARK, rim: false });
-    // Seat front and both arms sit in front of the cats.
+    // The left arm is farther from the viewer than the cats, so it goes with the back; the seat front and the right
+    // arm sit in front of them.
+    box(back, o, [-7, 0, 3], [0, 24, 19], { top: ramp(P.orange, 0.85), left: ramp(P.orange, 0.55), right: ORANGE_DARK });
     faceV(front, o, 24, [0, du], [3, 12], (u, z, x, y) => (z >= 11 ? P.orange[4] : tone(P.orange, 0.5, x, y)));
-    for (const u0 of [-7, du]) box(front, o, [u0, 0, 3], [u0 + 7, 24, 19], { top: ramp(P.orange, 0.85), left: ramp(P.orange, 0.55), right: ORANGE_DARK });
+    box(front, o, [du, 0, 3], [du + 7, 24, 19], { top: ramp(P.orange, 0.85), left: ramp(P.orange, 0.55), right: ORANGE_DARK });
     return { "sofa-back": back, "sofa-front": front };
   }, { shadow: (u, v) => u > -9 && u < du + 9 && v > -1 && v < 28 });
 }

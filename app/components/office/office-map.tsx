@@ -53,6 +53,11 @@ function elevation(u: number, v: number) {
   return 0;
 }
 const ground = (p: Point) => screen(p.x, p.y, elevation(p.x, p.y));
+// Sofa layers, back to front: the back with the far arm, one layer per seat (nearer seats overlap farther ones), then
+// the seat front with the near arm.
+const SOFA = plan.seats.sofa, SOFA_SEATS = ["sofa-1", "sofa-2", "sofa-3"], SEAT_Z = 12, SEAT_EDGE = SOFA.v + 24;
+const SOFA_ORDER = depth(SOFA.u + SOFA.du / 2, SOFA.v + 14), SOFA_FRONT = SOFA_ORDER + SOFA_SEATS.length + 1;
+const seatOrder = (spot: string) => SOFA_ORDER + 1 + SOFA_SEATS.indexOf(spot);
 const at = (x: number, y: number, extra: Record<string, number> = {}) => ({ "--x": x, "--y": y, ...extra }) as CSSProperties;
 const point = ([x, y]: number[]): Point => ({ x, y });
 // The sky and lawn reach the stage edges in flat bands; the frame repeats them so a wide screen has no empty sides.
@@ -60,6 +65,19 @@ const backdrop = (scale: number) => ({ backgroundImage: `linear-gradient(${ART_M
 
 const SPOTS: Record<string, Spot> = Object.fromEntries((Object.keys(plan.spots) as RoomId[]).flatMap(room => plan.spots[room].list.map(s => [s.id, { id: s.id, kind: s.kind, room, at: point(s.at), via: s.via.map(point) }])));
 const roomOfSpot = (id: string) => SPOTS[id].room;
+
+// A cat walking through the lounge sorts against the sofa as a whole: in front of the seat edge it passes over it,
+// behind the back or beside the far arm it passes under it, and stepping onto a seat it climbs up into that seat's layer.
+function walkerLayer(p: Point) {
+  const z = depth(p.x, p.y) + 1;
+  if (!inside(plan.rooms.lounge, p.x, p.y)) return { z, lift: 0 };
+  if (p.y >= SEAT_EDGE + 4) return { z: p.x >= SOFA.u - 12 ? Math.max(z, SOFA_FRONT + 1) : z, lift: 0 };
+  if (p.y >= SOFA.v && p.x >= SOFA.u && p.x < SOFA.u + SOFA.du) {
+    const seat = SOFA_SEATS.reduce((a, b) => (Math.abs(SPOTS[b].at.x - p.x) < Math.abs(SPOTS[a].at.x - p.x) ? b : a));
+    return { z: seatOrder(seat), lift: SEAT_Z * Math.min(1, (SEAT_EDGE + 4 - p.y) / 8) };
+  }
+  return { z: Math.min(z, SOFA_ORDER - 1), lift: 0 };
+}
 
 // Back out through the spot's walkway to the room's door, along the corridor on the cat's own lane, and in through
 // the next room's door. Walkways keep clear of furniture and only cross walls at doors.
@@ -223,15 +241,13 @@ export default function OfficeMap({ department, tasks, onOpenRoom }: { departmen
     </>;
   };
 
-  const { sofa } = plan.seats;
-  const sofaOrder = depth(sofa.u + sofa.du / 2, 222);
   // Everyone who walks around: staff and the visitor.
   const walkers = ACTORS.filter(id => id !== "guest" || !guestGone).map(id => {
     const actor = sim.actors[id], sprite = id === "guest" ? guest.id : id;
     if (!actor.seat) {
       const p = ground(actor.pos), next = actor.path[0], dx = next ? (next.x - actor.pos.x) - (next.y - actor.pos.y) : 0;
-      const x = p.x - 22, y = p.y - 40;
-      return <div key={id} className={styles.seat}><CatSprite id={sprite} pose="walk" x={x} y={y} z={depth(actor.pos.x, actor.pos.y) + 1} flip={dx < 0} duration={0.6}/>{pick(id, x, y, 42)}</div>;
+      const layer = walkerLayer(actor.pos), x = p.x - 22, y = p.y - 40 - layer.lift;
+      return <div key={id} className={styles.seat}><CatSprite id={sprite} pose="walk" x={x} y={y} z={layer.z} flip={dx < 0} duration={0.6}/>{pick(id, x, y, 42)}</div>;
     }
     const spot = SPOTS[actor.seat];
     if (spot.kind === "stand") {
@@ -239,8 +255,8 @@ export default function OfficeMap({ department, tasks, onOpenRoom }: { departmen
       return <div key={id} className={styles.seat}><CatSprite id={sprite} pose="stand" x={x} y={y} z={depth(spot.at.x, spot.at.y) + 1} flip={faceLeft}/>{pick(id, x, y, 42)}</div>;
     }
     if (spot.kind === "sofa") {
-      const p = screen(spot.at.x, spot.at.y, 12), pose = SOFA_POSES[spot.id], x = p.x - 21, y = p.y - 36;
-      return <div key={id} className={styles.seat}><CatSprite id={sprite} pose={pose.pose} x={x} y={y} z={sofaOrder + 1} duration={pose.duration}/>{pick(id, x, y)}</div>;
+      const p = screen(spot.at.x, spot.at.y, SEAT_Z), pose = SOFA_POSES[spot.id], x = p.x - 21, y = p.y - 36;
+      return <div key={id} className={styles.seat}><CatSprite id={sprite} pose={pose.pose} x={x} y={y} z={seatOrder(spot.id)} duration={pose.duration}/>{pick(id, x, y)}</div>;
     }
     return null;
   });
@@ -286,8 +302,8 @@ export default function OfficeMap({ department, tasks, onOpenRoom }: { departmen
         })}
 
         {/* Lounge: sofa and beanbag */}
-        <Piece kind="sofa-back" u={sofa.u} v={sofa.v} order={sofaOrder}/>
-        <Piece kind="sofa-front" u={sofa.u} v={sofa.v} order={sofaOrder + 2}/>
+        <Piece kind="sofa-back" u={SOFA.u} v={SOFA.v} order={SOFA_ORDER}/>
+        <Piece kind="sofa-front" u={SOFA.u} v={SOFA.v} order={SOFA_FRONT}/>
         <Sprite src={`${BEANBAG}back.png`} x={bean.x - 23} y={bean.y - 26} w={46} h={28} z={beanOrder}/>
         {(() => { const id = sitter("beanbag"); return id && <><CatSprite id={id} pose="rest" x={bean.x - 23} y={bean.y - 57} z={beanOrder + 1} duration={2.8}/>{pick(id, bean.x - 23, bean.y - 57, 50)}</>; })()}
         <Sprite src={`${BEANBAG}front.png`} x={bean.x - 23} y={bean.y - 26} w={46} h={28} z={beanOrder + 2}/>
@@ -301,7 +317,8 @@ export default function OfficeMap({ department, tasks, onOpenRoom }: { departmen
         {(Object.keys(plan.rooms) as RoomId[]).map(id => {
           const r = plan.rooms[id], corners = [[r.u, r.v], [r.u + r.du, r.v], [r.u + r.du, r.v + r.dv], [r.u, r.v + r.dv]].map(([u, v]) => screen(u, v, r.z));
           const x0 = Math.min(...corners.map(c => c.x)), y0 = Math.min(...corners.map(c => c.y)), w = Math.max(...corners.map(c => c.x)) - x0, h = Math.max(...corners.map(c => c.y)) - y0;
-          const label = screen(r.u + r.du / 2, r.v + r.dv / 2, r.z);
+          // Keep the lounge label on the lawn in front; its center is occupied by the sofa and table.
+          const label = screen(r.u + r.du / 2, id === "lounge" ? r.v + r.dv + 24 : r.v + r.dv / 2, r.z);
           return <div key={id} className={styles.room} style={at(0, 0)}>
             <button type="button" className={styles.roomArea} style={{ ...at(x0, y0, { "--w": w, "--h": h }), clipPath: `polygon(${corners.map(c => `${((c.x - x0) / w) * 100}% ${((c.y - y0) / h) * 100}%`).join(",")})` }} onClick={() => onOpenRoom(id)} aria-label={`${r.name}の詳細画面を開く`}/>
             <span className={styles.roomTag} style={at(label.x, label.y)} aria-hidden="true">{r.name} ›</span>
